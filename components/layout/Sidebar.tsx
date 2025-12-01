@@ -222,7 +222,7 @@ const MenuItemComponent = memo(({ item, level, openItems, toggleItem, onNavigate
               className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''} ${isActive ? 'text-accent-electric' : 'text-gray-500'}`}
             />
           </button>
-          {isOpen && (
+          {isOpen && item.children && (
             <div className="overflow-hidden ml-4 border-l-2 border-accent-electric/20 pl-3 mt-1.5">
               <div className="space-y-0.5 py-1">
                 {item.children.map((child) => (
@@ -289,7 +289,7 @@ const MenuItemComponent = memo(({ item, level, openItems, toggleItem, onNavigate
               className={`w-3.5 h-3.5 transition-transform duration-200 ${childIsOpen ? 'rotate-90' : ''} ${childIsActive ? 'text-accent-electric' : 'text-gray-500'}`}
             />
           </button>
-          {childIsOpen && (
+          {childIsOpen && item.children && (
             <div className="overflow-hidden ml-4 mt-1 border-l-2 border-accent-electric/15 pl-2.5">
               <div className="space-y-0.5 py-1">
                 {item.children.map((grandchild) => (
