@@ -13,32 +13,48 @@ export default function MainLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { checkAuth } = useAuthStore()
+  const { checkAuth, isAuthenticated } = useAuthStore()
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // Não verificar autenticação na página de login
-    if (pathname === '/login') {
+    // Rotas públicas que não precisam de autenticação
+    const publicRoutes = ['/login', '/cadastro', '/verificar-conexao']
+    const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+
+    // Se for rota pública, não verificar autenticação
+    if (isPublicRoute) {
       setIsChecking(false)
       return
     }
 
-    // Verificar autenticação em outras rotas
-    if (!checkAuth()) {
+    // Verificar autenticação em rotas protegidas
+    // SEGURANÇA: Verifica tanto checkAuth quanto isAuthenticated
+    const isAuth = checkAuth() && isAuthenticated
+    
+    if (!isAuth) {
       router.push('/login')
-    } else {
-      setIsChecking(false)
+      return
     }
-  }, [pathname, checkAuth, router])
 
-  // Se estiver na página de login, não renderizar o layout
-  if (pathname === '/login') {
+    setIsChecking(false)
+  }, [pathname, checkAuth, isAuthenticated, router])
+
+  // Se estiver em rota pública, não renderizar o layout
+  const publicRoutes = ['/login', '/cadastro', '/verificar-conexao']
+  if (publicRoutes.some(route => pathname.startsWith(route))) {
     return <>{children}</>
   }
 
   // Mostrar loading enquanto verifica autenticação
   if (isChecking) {
-    return null
+    return (
+      <div className="min-h-screen bg-dark-deep flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-accent-electric/30 border-t-accent-electric rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-300">Verificando autenticação...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

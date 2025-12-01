@@ -64,16 +64,8 @@ export const useAuthStore = create<AuthState>()(
         // Busca o usuário pelo email
         const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
         
-        // Se não encontrar usuário cadastrado, permite login com qualquer email/senha (compatibilidade)
+        // SEGURANÇA: Não permite login sem cadastro - usuário deve estar cadastrado
         if (!user) {
-          if (email && password.length >= 6) {
-            set({
-              isAuthenticated: true,
-              user: { email, name: email.split('@')[0] },
-              rememberMe,
-            })
-            return true
-          }
           return false
         }
 
