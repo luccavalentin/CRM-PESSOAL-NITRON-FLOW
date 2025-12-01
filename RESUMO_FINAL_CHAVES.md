@@ -50,3 +50,4 @@ Na Vercel, vá em **Settings > Environment Variables**:
 
 Depois disso, faça o deploy e tudo funcionará!
 
+

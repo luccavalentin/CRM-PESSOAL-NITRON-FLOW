@@ -6,6 +6,7 @@ interface FinancasEmpresaStore {
   transacoes: TransacaoFinanceira[]
   metas: MetaFinanceira[]
   fluxoCaixa: number
+  saldoAcumulado: number // Saldo acumulado que passa para o próximo mês
   addTransacao: (transacao: TransacaoFinanceira) => void
   updateTransacao: (id: string, transacao: Partial<TransacaoFinanceira>) => void
   deleteTransacao: (id: string) => void
@@ -25,6 +26,7 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
       transacoes: [],
       metas: [],
       fluxoCaixa: 0,
+      saldoAcumulado: 0,
       addTransacao: (transacao) => {
         set((state) => ({ transacoes: [...state.transacoes, transacao] }))
         get().calcularFluxoCaixa()
@@ -89,13 +91,64 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
           .reduce((acc, t) => acc + t.valor, 0)
       },
       calcularFluxoCaixa: () => {
-        const entradas = get()
-          .transacoes.filter((t) => t.tipo === 'entrada')
+        const hoje = new Date()
+        const mesAtual = hoje.getMonth()
+        const anoAtual = hoje.getFullYear()
+        
+        // Calcula receitas e despesas do mês atual
+        const receitasMes = get()
+          .transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              data.getMonth() === mesAtual &&
+              data.getFullYear() === anoAtual &&
+              t.tipo === 'entrada'
+            )
+          })
           .reduce((acc, t) => acc + t.valor, 0)
-        const saidas = get()
-          .transacoes.filter((t) => t.tipo === 'saida')
+        
+        const despesasMes = get()
+          .transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              data.getMonth() === mesAtual &&
+              data.getFullYear() === anoAtual &&
+              t.tipo === 'saida'
+            )
+          })
           .reduce((acc, t) => acc + t.valor, 0)
-        set({ fluxoCaixa: entradas - saidas })
+        
+        // Calcula saldo acumulado de meses anteriores
+        const receitasAnteriores = get()
+          .transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              (data.getMonth() < mesAtual && data.getFullYear() === anoAtual) ||
+              data.getFullYear() < anoAtual
+            ) && t.tipo === 'entrada'
+          })
+          .reduce((acc, t) => acc + t.valor, 0)
+        
+        const despesasAnteriores = get()
+          .transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              (data.getMonth() < mesAtual && data.getFullYear() === anoAtual) ||
+              data.getFullYear() < anoAtual
+            ) && t.tipo === 'saida'
+          })
+          .reduce((acc, t) => acc + t.valor, 0)
+        
+        // Saldo acumulado = Receitas anteriores - Despesas anteriores
+        const saldoAcumulado = receitasAnteriores - despesasAnteriores
+        
+        // Fluxo de caixa = Saldo acumulado + Receitas do mês - Despesas do mês
+        const fluxoCaixa = saldoAcumulado + receitasMes - despesasMes
+        
+        set({ 
+          fluxoCaixa,
+          saldoAcumulado 
+        })
       },
       getSaudeFinanceira: () => {
         const fluxo = get().fluxoCaixa
@@ -109,5 +162,6 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
     }
   )
 )
+
 
 

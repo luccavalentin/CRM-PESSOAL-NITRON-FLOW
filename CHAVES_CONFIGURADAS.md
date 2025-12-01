@@ -45,3 +45,4 @@ Vá em **Settings > Environment Variables** e adicione:
 
 As chaves estão configuradas em todos os lugares necessários!
 
+

@@ -48,12 +48,43 @@ export const useAuthStore = create<AuthState>()(
         }
 
         // Adiciona o usuário à lista
+        const updatedUsers = [...users, newUser]
         set({
-          users: [...users, newUser],
+          users: updatedUsers,
           isAuthenticated: true,
           user: { email: newUser.email, name: newUser.nome },
           rememberMe: true,
         })
+
+        // Força a persistência imediata no localStorage
+        // O Zustand deve fazer isso automaticamente, mas garantimos aqui
+        // Usa o formato correto do Zustand: { state: {...}, version: 0 }
+        try {
+          const currentStorage = localStorage.getItem('auth-storage')
+          let parsedStorage: any = { state: {}, version: 0 }
+          
+          if (currentStorage) {
+            try {
+              parsedStorage = JSON.parse(currentStorage)
+            } catch (e) {
+              console.warn('[AuthStore] Erro ao parsear storage existente, criando novo')
+            }
+          }
+          
+          // Atualiza o estado com os novos dados
+          parsedStorage.state = {
+            users: updatedUsers,
+            isAuthenticated: true,
+            user: { email: newUser.email, name: newUser.nome },
+            rememberMe: true,
+          }
+          
+          localStorage.setItem('auth-storage', JSON.stringify(parsedStorage))
+          console.log('[AuthStore] Usuário salvo com sucesso:', newUser.email)
+          console.log('[AuthStore] Total de usuários salvos:', updatedUsers.length)
+        } catch (error) {
+          console.error('[AuthStore] Erro ao salvar usuário:', error)
+        }
 
         return true
       },
@@ -112,9 +143,9 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => {
-        // Sempre salva a lista de usuários
+        // SEMPRE salva a lista de usuários - isso é crítico para o sistema funcionar
         const partialState: any = {
-          users: state.users,
+          users: state.users || [], // Garante que sempre tenha um array
         }
         
         // Se rememberMe estiver ativo, salva tudo
@@ -130,6 +161,13 @@ export const useAuthStore = create<AuthState>()(
         }
         
         return partialState
+      },
+      // Garante que o estado seja persistido imediatamente após mudanças
+      onRehydrateStorage: () => (state) => {
+        // Verifica se os usuários foram carregados corretamente
+        if (state && state.users && state.users.length > 0) {
+          console.log(`[AuthStore] ${state.users.length} usuário(s) carregado(s) do localStorage`)
+        }
       },
     }
   )

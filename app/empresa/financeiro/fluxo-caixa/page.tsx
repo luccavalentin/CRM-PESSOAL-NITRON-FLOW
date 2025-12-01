@@ -26,7 +26,10 @@ import {
   BarChart3,
   PieChart,
   Link2,
-  ListTodo
+  ListTodo,
+  CheckSquare,
+  Square,
+  Trash
 } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -45,6 +48,7 @@ export default function FluxoCaixaPage() {
   const [busca, setBusca] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
   const [saldoInicial, setSaldoInicial] = useState(0)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
   const addTarefa = useTarefasStore((state) => state.addTarefa)
   const tarefas = useTarefasStore((state) => state.tarefas)
@@ -309,6 +313,36 @@ export default function FluxoCaixaPage() {
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta transação?')) {
       deleteTransacao(id)
+    }
+  }
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === transacoesFiltradas.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(transacoesFiltradas.map(t => t.id)))
+    }
+  }
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return
+    
+    const count = selectedIds.size
+    if (confirm(`Tem certeza que deseja excluir ${count} transação(ões) selecionada(s)?`)) {
+      selectedIds.forEach(id => deleteTransacao(id))
+      setSelectedIds(new Set())
     }
   }
 
@@ -661,15 +695,46 @@ export default function FluxoCaixaPage() {
 
         {/* Lista de Transações */}
         <div className="bg-card-bg border-2 border-card-border rounded-xl p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Transações ({transacoesFiltradas.length})
-            </h2>
-            {saldoAtual < 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg">
-                <AlertCircle className="w-4 h-4 text-red-400" />
-                <span className="text-sm text-red-400 font-semibold">Saldo Negativo</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Transações ({transacoesFiltradas.length})
+              </h2>
+              {saldoAtual < 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                  <span className="text-sm text-red-400 font-semibold">Saldo Negativo</span>
+                </div>
+              )}
+            </div>
+            {transacoesFiltradas.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectAll}
+                  className="px-4 py-2 bg-dark-black/50 border border-card-border rounded-lg text-white hover:border-accent-electric transition-colors flex items-center gap-2 text-sm"
+                >
+                  {selectedIds.size === transacoesFiltradas.length ? (
+                    <>
+                      <CheckSquare className="w-4 h-4" />
+                      Desselecionar Todos
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-4 h-4" />
+                      Selecionar Todos
+                    </>
+                  )}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="px-4 py-2 bg-red-600/20 border border-red-500/50 rounded-lg text-red-400 hover:bg-red-600/30 transition-colors flex items-center gap-2 text-sm font-semibold"
+                  >
+                    <Trash className="w-4 h-4" />
+                    Excluir Selecionados ({selectedIds.size})
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -680,20 +745,27 @@ export default function FluxoCaixaPage() {
                   key={transacao.id}
                   className="flex items-center justify-between p-4 bg-dark-black/50 border border-card-border rounded-lg hover:border-accent-electric/30 transition-all group"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        transacao.tipo === 'entrada' 
-                          ? 'bg-emerald-500/20 text-emerald-400' 
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {transacao.tipo === 'entrada' ? (
-                          <ArrowUpRight className="w-4 h-4" />
-                        ) : (
-                          <ArrowDownRight className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(transacao.id)}
+                      onChange={() => handleToggleSelect(transacao.id)}
+                      className="w-5 h-5 rounded border-card-border bg-dark-black/50 text-accent-electric focus:ring-accent-electric cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          transacao.tipo === 'entrada' 
+                            ? 'bg-emerald-500/20 text-emerald-400' 
+                            : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {transacao.tipo === 'entrada' ? (
+                            <ArrowUpRight className="w-4 h-4" />
+                          ) : (
+                            <ArrowDownRight className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-white font-medium truncate">{transacao.descricao}</p>
                           {transacao.recorrente && (
@@ -715,6 +787,7 @@ export default function FluxoCaixaPage() {
                           )}
                         </p>
                       </div>
+                    </div>
                     </div>
                   </div>
                   {tarefas.filter(t => 

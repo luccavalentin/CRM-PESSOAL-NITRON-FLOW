@@ -45,3 +45,4 @@ Após configurar as variáveis:
 - ✅ Use os valores diretamente nos campos Value
 - ✅ O arquivo `vercel.json` foi corrigido e não precisa mais de secrets
 
+

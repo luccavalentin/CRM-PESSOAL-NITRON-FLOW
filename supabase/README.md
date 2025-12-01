@@ -63,3 +63,4 @@ Após executar, verifique se todas as tabelas foram criadas:
 - Row Level Security (RLS) está habilitado em todas as tabelas
 - Ajuste as políticas conforme necessário no painel do Supabase
 
+

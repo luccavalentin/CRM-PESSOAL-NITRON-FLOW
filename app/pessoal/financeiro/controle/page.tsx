@@ -9,7 +9,7 @@ import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { TransacaoFinanceira } from '@/types'
-import { Plus, TrendingUp, TrendingDown, Wallet, Link2, ListTodo, Edit2, Trash2, Filter, Search, Calendar, BarChart3, PieChart as PieChartIcon, ArrowUpDown } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, Wallet, Link2, ListTodo, Edit2, Trash2, Filter, Search, Calendar, BarChart3, PieChart as PieChartIcon, ArrowUpDown, CheckSquare, Square, Trash } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
@@ -28,6 +28,7 @@ export default function ControleFinancasPage() {
   const [busca, setBusca] = useState('')
   const [ordenacao, setOrdenacao] = useState<'data' | 'valor' | 'categoria'>('data')
   const [ordem, setOrdem] = useState<'asc' | 'desc'>('desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const checkbox = document.querySelector('input[name="recorrente"]') as HTMLInputElement
@@ -315,6 +316,36 @@ export default function ControleFinancasPage() {
     }
   }
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === transacoesFiltradas.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(transacoesFiltradas.map(t => t.id)))
+    }
+  }
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return
+    
+    const count = selectedIds.size
+    if (confirm(`Tem certeza que deseja excluir ${count} transação(ões) selecionada(s)?`)) {
+      selectedIds.forEach(id => deleteTransacao(id))
+      setSelectedIds(new Set())
+    }
+  }
+
   const handleVincularTarefa = (transacao: TransacaoFinanceira) => {
     setTransacaoParaTarefa(transacao)
     setIsTarefaModalOpen(true)
@@ -574,11 +605,40 @@ export default function ControleFinancasPage() {
 
         {/* Lista de Transações */}
         <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Wallet className="w-5 h-5 text-accent-electric" />
               Transações ({transacoesFiltradas.length})
             </h2>
+            {transacoesFiltradas.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectAll}
+                  className="px-4 py-2 bg-dark-black/50 border border-card-border/50 rounded-lg text-white hover:border-accent-electric/50 transition-colors flex items-center gap-2 text-sm"
+                >
+                  {selectedIds.size === transacoesFiltradas.length ? (
+                    <>
+                      <CheckSquare className="w-4 h-4" />
+                      Desselecionar Todos
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-4 h-4" />
+                      Selecionar Todos
+                    </>
+                  )}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="px-4 py-2 bg-red-600/20 border border-red-500/50 rounded-lg text-red-400 hover:bg-red-600/30 transition-colors flex items-center gap-2 text-sm font-semibold"
+                  >
+                    <Trash className="w-4 h-4" />
+                    Excluir Selecionados ({selectedIds.size})
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           {transacoesFiltradas.length > 0 ? (
             <div className="space-y-3">
@@ -602,7 +662,14 @@ export default function ControleFinancasPage() {
                     )}
                     
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex-1">
+                      <div className="flex items-center gap-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(transacao.id)}
+                          onChange={() => handleToggleSelect(transacao.id)}
+                          className="w-5 h-5 rounded border-card-border bg-dark-black/50 text-accent-electric focus:ring-accent-electric cursor-pointer"
+                        />
+                        <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <p className="text-white font-semibold text-lg">{transacao.descricao}</p>
                           {transacao.recorrente && (
@@ -631,6 +698,7 @@ export default function ControleFinancasPage() {
                               • {transacao.tipoRecorrencia.charAt(0).toUpperCase() + transacao.tipoRecorrencia.slice(1)}
                             </span>
                           )}
+                        </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
