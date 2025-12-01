@@ -7,6 +7,7 @@ interface StatCardProps {
   icon: LucideIcon
   subtitle?: string
   valueColor?: string
+  className?: string
   trend?: {
     value: number
     isPositive: boolean
@@ -19,10 +20,11 @@ export default function StatCard({
   icon: Icon,
   subtitle,
   valueColor = 'text-white',
+  className,
   trend,
 }: StatCardProps) {
   return (
-    <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
+    <div className={`bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6 ${className || ''}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="p-2 bg-accent-electric/20 rounded-lg">
           <Icon className="w-5 h-5 text-accent-electric" />
