@@ -53,7 +53,7 @@ export default function LoginPage() {
     // Simula um pequeno delay
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    const success = login(email, password, remember)
+    const success = await login(email, password, remember)
     
     if (success) {
       router.push('/dashboard')

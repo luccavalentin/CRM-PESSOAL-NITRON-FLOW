@@ -63,32 +63,21 @@ export default function CadastroPage() {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     console.log('[Cadastro] Tentando registrar usuário:', { nome, email })
-    const success = register(nome, email, password)
+    const success = await register(nome, email, password)
     console.log('[Cadastro] Resultado do registro:', success)
     
     if (success) {
       // Verifica se o usuário foi realmente salvo
       const authState = useAuthStore.getState()
-      console.log('[Cadastro] Usuários após registro:', authState.users.length)
       console.log('[Cadastro] Estado de autenticação:', authState.isAuthenticated)
+      console.log('[Cadastro] Usuário autenticado:', authState.user)
       
-      // Verifica o localStorage diretamente
-      try {
-        const stored = localStorage.getItem('auth-storage')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          console.log('[Cadastro] Usuários no localStorage:', parsed.state?.users?.length || 0)
-        }
-      } catch (e) {
-        console.error('[Cadastro] Erro ao verificar localStorage:', e)
-      }
-      
-      // Pequeno delay para garantir que o localStorage foi atualizado
+      // Pequeno delay para garantir que tudo foi processado
       await new Promise(resolve => setTimeout(resolve, 100))
       
       router.push('/dashboard')
     } else {
-      setError('Erro ao criar conta. Este email já pode estar em uso.')
+      setError('Erro ao criar conta. Este email já pode estar em uso ou houve um problema no servidor.')
       setLoading(false)
     }
   }

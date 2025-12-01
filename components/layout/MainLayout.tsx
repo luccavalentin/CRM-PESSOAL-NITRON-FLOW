@@ -29,14 +29,18 @@ export default function MainLayout({
 
     // Verificar autenticação em rotas protegidas
     // SEGURANÇA: Verifica tanto checkAuth quanto isAuthenticated
-    const isAuth = checkAuth() && isAuthenticated
-    
-    if (!isAuth) {
-      router.push('/login')
-      return
+    const verifyAuth = async () => {
+      const isAuth = await checkAuth()
+      
+      if (!isAuth || !isAuthenticated) {
+        router.push('/login')
+        return
+      }
+
+      setIsChecking(false)
     }
 
-    setIsChecking(false)
+    verifyAuth()
   }, [pathname, checkAuth, isAuthenticated, router])
 
   // Se estiver em rota pública, não renderizar o layout

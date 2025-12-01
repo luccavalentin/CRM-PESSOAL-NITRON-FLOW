@@ -1,5 +1,6 @@
 -- ============================================
--- ESTRUTURA SQL COMPLETA DO SISTEMA CRM
+-- SCHEMA SQL COMPLETO PARA SUPABASE
+-- Sistema CRM - Lucca
 -- ============================================
 
 -- Extensões necessárias
@@ -9,9 +10,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- TABELAS DE AUTENTICAÇÃO E USUÁRIOS
 -- ============================================
 
--- Tabela de usuários do sistema
+-- Tabela de usuários do sistema (vinculada ao auth.users do Supabase)
 CREATE TABLE IF NOT EXISTS usuarios (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   status VARCHAR(20) DEFAULT 'Ativo' CHECK (status IN ('Ativo', 'Inativo')),
@@ -23,6 +24,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Tabela de preferências do usuário
+CREATE TABLE IF NOT EXISTS preferencias_usuario (
+  usuario_id UUID PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+  mostrar_valores BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ============================================
 -- TABELAS DE CLIENTES E LEADS
 -- ============================================
@@ -30,6 +39,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- Tabela de leads
 CREATE TABLE IF NOT EXISTS leads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   email VARCHAR(255),
   telefone VARCHAR(20),
@@ -52,6 +62,7 @@ CREATE TABLE IF NOT EXISTS leads (
 -- Tabela de clientes
 CREATE TABLE IF NOT EXISTS clientes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   email VARCHAR(255),
   telefone VARCHAR(20),
@@ -76,6 +87,7 @@ CREATE TABLE IF NOT EXISTS clientes (
 -- Tabela de tarefas
 CREATE TABLE IF NOT EXISTS tarefas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   titulo VARCHAR(255) NOT NULL,
   descricao TEXT,
   prioridade VARCHAR(20) DEFAULT 'Média' CHECK (prioridade IN ('Baixa', 'Média', 'Alta', 'Urgente')),
@@ -86,7 +98,7 @@ CREATE TABLE IF NOT EXISTS tarefas (
   projeto_id UUID,
   recorrente BOOLEAN DEFAULT FALSE,
   target VARCHAR(255),
-  etiquetas TEXT[], -- Array de strings
+  etiquetas TEXT[],
   concluida BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -95,6 +107,7 @@ CREATE TABLE IF NOT EXISTS tarefas (
 -- Tabela de projetos
 CREATE TABLE IF NOT EXISTS projetos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   descricao TEXT,
   status VARCHAR(20) DEFAULT 'Pendente' CHECK (status IN ('Pendente', 'Andamento', 'Revisão', 'Entregue', 'Arquivado')),
@@ -140,6 +153,7 @@ CREATE TABLE IF NOT EXISTS documentos_etapa (
 -- Tabela de projetos pessoais
 CREATE TABLE IF NOT EXISTS projetos_pessoais (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   descricao TEXT,
   status VARCHAR(20) DEFAULT 'Planejamento' CHECK (status IN ('Planejamento', 'Em Andamento', 'Pausado', 'Concluído', 'Cancelado')),
@@ -158,6 +172,7 @@ CREATE TABLE IF NOT EXISTS projetos_pessoais (
 -- Tabela de ideias
 CREATE TABLE IF NOT EXISTS ideias (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   texto TEXT NOT NULL,
   categoria VARCHAR(20) DEFAULT 'Outro' CHECK (categoria IN ('Negócio', 'Automação', 'Projeto', 'Conteúdo', 'Outro')),
   status VARCHAR(20) DEFAULT 'Explorando' CHECK (status IN ('Explorando', 'Em Análise', 'Em Teste', 'Executando', 'Arquivada')),
@@ -176,6 +191,7 @@ CREATE TABLE IF NOT EXISTS ideias (
 -- Tabela de transações financeiras da empresa
 CREATE TABLE IF NOT EXISTS transacoes_financeiras_empresa (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor DECIMAL(15, 2) NOT NULL,
   categoria VARCHAR(100),
@@ -193,6 +209,7 @@ CREATE TABLE IF NOT EXISTS transacoes_financeiras_empresa (
 -- Tabela de metas financeiras da empresa
 CREATE TABLE IF NOT EXISTS metas_financeiras_empresa (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor_meta DECIMAL(15, 2) NOT NULL,
   valor_atual DECIMAL(15, 2) DEFAULT 0,
@@ -208,6 +225,7 @@ CREATE TABLE IF NOT EXISTS metas_financeiras_empresa (
 -- Tabela de transações financeiras pessoais
 CREATE TABLE IF NOT EXISTS transacoes_financeiras_pessoais (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor DECIMAL(15, 2) NOT NULL,
   categoria VARCHAR(100),
@@ -225,6 +243,7 @@ CREATE TABLE IF NOT EXISTS transacoes_financeiras_pessoais (
 -- Tabela de metas financeiras pessoais
 CREATE TABLE IF NOT EXISTS metas_financeiras_pessoais (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor_meta DECIMAL(15, 2) NOT NULL,
   valor_atual DECIMAL(15, 2) DEFAULT 0,
@@ -236,6 +255,7 @@ CREATE TABLE IF NOT EXISTS metas_financeiras_pessoais (
 -- Tabela de gastos recorrentes pessoais
 CREATE TABLE IF NOT EXISTS gastos_recorrentes_pessoais (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor DECIMAL(15, 2) NOT NULL,
   proxima_data DATE NOT NULL,
@@ -247,6 +267,7 @@ CREATE TABLE IF NOT EXISTS gastos_recorrentes_pessoais (
 -- Tabela de lista de compras
 CREATE TABLE IF NOT EXISTS lista_compras (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   quantidade INTEGER DEFAULT 1,
   valor_estimado DECIMAL(10, 2) DEFAULT 0,
@@ -260,6 +281,7 @@ CREATE TABLE IF NOT EXISTS lista_compras (
 -- Tabela de negociações (dívidas pessoais)
 CREATE TABLE IF NOT EXISTS negociacoes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   descricao VARCHAR(255) NOT NULL,
   valor_total DECIMAL(15, 2) NOT NULL,
   status VARCHAR(20) DEFAULT 'Pendente' CHECK (status IN ('Pendente', 'Renegociada', 'Paga')),
@@ -303,6 +325,7 @@ CREATE TABLE IF NOT EXISTS parcelas_renegociacao (
 -- Tabela de operações de trading
 CREATE TABLE IF NOT EXISTS operacoes_trading (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   numero_operacao INTEGER,
   ativo VARCHAR(50) NOT NULL,
   tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('CALL', 'PUT')),
@@ -319,6 +342,7 @@ CREATE TABLE IF NOT EXISTS operacoes_trading (
 -- Tabela de configurações de trading
 CREATE TABLE IF NOT EXISTS configuracoes_trading (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   capital_total DECIMAL(15, 2) NOT NULL,
   meta_diaria_percentual DECIMAL(5, 2) NOT NULL,
   stop_gain_reais DECIMAL(15, 2) NOT NULL,
@@ -332,12 +356,14 @@ CREATE TABLE IF NOT EXISTS configuracoes_trading (
   bloqueado BOOLEAN DEFAULT FALSE,
   motivo_bloqueio VARCHAR(20) CHECK (motivo_bloqueio IN ('stop_gain', 'stop_loss', 'limite_operacoes')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(usuario_id)
 );
 
 -- Tabela de sessões de alavancagem
 CREATE TABLE IF NOT EXISTS sessoes_alavancagem (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   capital_inicial DECIMAL(15, 2) NOT NULL,
   numero_niveis INTEGER NOT NULL CHECK (numero_niveis >= 1 AND numero_niveis <= 5),
   meta_por_nivel DECIMAL(5, 2) NOT NULL,
@@ -374,6 +400,7 @@ CREATE TABLE IF NOT EXISTS operacoes_alavancagem (
 -- Tabela de temas de estudo
 CREATE TABLE IF NOT EXISTS temas_estudo (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   descricao TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -393,11 +420,12 @@ CREATE TABLE IF NOT EXISTS materias_estudo (
 -- Tabela de aulas
 CREATE TABLE IF NOT EXISTS aulas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   materia_id UUID REFERENCES materias_estudo(id) ON DELETE CASCADE,
   nicho_id UUID,
   titulo VARCHAR(255) NOT NULL,
   url_video TEXT,
-  duracao INTEGER DEFAULT 0, -- em minutos
+  duracao INTEGER DEFAULT 0,
   status VARCHAR(20) DEFAULT 'Não iniciada' CHECK (status IN ('Não iniciada', 'Em andamento', 'Concluída')),
   data_conclusao DATE,
   notas TEXT,
@@ -423,6 +451,7 @@ CREATE TABLE IF NOT EXISTS revisoes (
 -- Tabela de vícios/hábitos
 CREATE TABLE IF NOT EXISTS vicios_habitos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   nome VARCHAR(255) NOT NULL,
   descricao TEXT,
   tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('Vício', 'Hábito', 'Mania')),
@@ -436,6 +465,7 @@ CREATE TABLE IF NOT EXISTS vicios_habitos (
 -- Tabela de atividades de autodesenvolvimento
 CREATE TABLE IF NOT EXISTS atividades_autodesenvolvimento (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   titulo VARCHAR(255) NOT NULL,
   descricao TEXT,
   categoria VARCHAR(100),
@@ -450,6 +480,7 @@ CREATE TABLE IF NOT EXISTS atividades_autodesenvolvimento (
 -- Tabela de livros
 CREATE TABLE IF NOT EXISTS livros (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   titulo VARCHAR(255) NOT NULL,
   autor VARCHAR(255),
   genero VARCHAR(100),
@@ -465,6 +496,7 @@ CREATE TABLE IF NOT EXISTS livros (
 -- Tabela de metas pessoais
 CREATE TABLE IF NOT EXISTS metas_pessoais (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   titulo VARCHAR(255) NOT NULL,
   descricao TEXT,
   categoria VARCHAR(100),
@@ -482,6 +514,7 @@ CREATE TABLE IF NOT EXISTS metas_pessoais (
 -- Tabela de registros de peso
 CREATE TABLE IF NOT EXISTS registros_peso (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   peso DECIMAL(5, 2) NOT NULL,
   data DATE NOT NULL DEFAULT CURRENT_DATE,
   observacoes TEXT,
@@ -492,6 +525,7 @@ CREATE TABLE IF NOT EXISTS registros_peso (
 -- Tabela de registros de alimentação
 CREATE TABLE IF NOT EXISTS registros_alimentacao (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   alimento TEXT NOT NULL,
   refeicao VARCHAR(50),
   calorias INTEGER DEFAULT 0,
@@ -504,8 +538,9 @@ CREATE TABLE IF NOT EXISTS registros_alimentacao (
 -- Tabela de registros de treinos
 CREATE TABLE IF NOT EXISTS registros_treinos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   tipo VARCHAR(100),
-  duracao INTEGER DEFAULT 0, -- em minutos
+  duracao INTEGER DEFAULT 0,
   intensidade VARCHAR(20) CHECK (intensidade IN ('Leve', 'Moderada', 'Alta')),
   data DATE NOT NULL DEFAULT CURRENT_DATE,
   observacoes TEXT,
@@ -516,6 +551,7 @@ CREATE TABLE IF NOT EXISTS registros_treinos (
 -- Tabela de registros de sono
 CREATE TABLE IF NOT EXISTS registros_sono (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   hora_inicio TIME NOT NULL,
   hora_fim TIME NOT NULL,
   qualidade VARCHAR(20) CHECK (qualidade IN ('Ruim', 'Regular', 'Boa', 'Excelente')),
@@ -532,6 +568,7 @@ CREATE TABLE IF NOT EXISTS registros_sono (
 -- Tabela de afirmações (Lei da Atração)
 CREATE TABLE IF NOT EXISTS afirmacoes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   texto TEXT NOT NULL,
   categoria VARCHAR(100),
   data_criacao DATE DEFAULT CURRENT_DATE,
@@ -544,6 +581,7 @@ CREATE TABLE IF NOT EXISTS afirmacoes (
 -- Tabela de registros astrológicos
 CREATE TABLE IF NOT EXISTS registros_astrologia (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id UUID REFERENCES usuarios(id) ON DELETE CASCADE,
   data DATE NOT NULL,
   tipo VARCHAR(50) NOT NULL CHECK (tipo IN ('Lua Nova', 'Lua Cheia', 'Eclipse', 'Retrogradação', 'Outro')),
   signo VARCHAR(50),
@@ -557,35 +595,47 @@ CREATE TABLE IF NOT EXISTS registros_astrologia (
 -- ÍNDICES PARA PERFORMANCE
 -- ============================================
 
+-- Índices para usuários
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+CREATE INDEX IF NOT EXISTS idx_usuarios_status ON usuarios(status);
+
 -- Índices para leads
+CREATE INDEX IF NOT EXISTS idx_leads_usuario_id ON leads(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 CREATE INDEX IF NOT EXISTS idx_leads_data_criacao ON leads(data_criacao);
 CREATE INDEX IF NOT EXISTS idx_leads_cidade ON leads(cidade);
 
 -- Índices para clientes
+CREATE INDEX IF NOT EXISTS idx_clientes_usuario_id ON clientes(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_clientes_status ON clientes(status);
 CREATE INDEX IF NOT EXISTS idx_clientes_data_cadastro ON clientes(data_cadastro);
 
 -- Índices para tarefas
+CREATE INDEX IF NOT EXISTS idx_tarefas_usuario_id ON tarefas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_tarefas_status ON tarefas(status);
 CREATE INDEX IF NOT EXISTS idx_tarefas_data ON tarefas(data);
 CREATE INDEX IF NOT EXISTS idx_tarefas_projeto_id ON tarefas(projeto_id);
 
 -- Índices para projetos
+CREATE INDEX IF NOT EXISTS idx_projetos_usuario_id ON projetos(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_projetos_status ON projetos(status);
 CREATE INDEX IF NOT EXISTS idx_projetos_data_inicio ON projetos(data_inicio);
 
 -- Índices para transações financeiras
+CREATE INDEX IF NOT EXISTS idx_transacoes_empresa_usuario_id ON transacoes_financeiras_empresa(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_transacoes_empresa_tipo ON transacoes_financeiras_empresa(tipo);
 CREATE INDEX IF NOT EXISTS idx_transacoes_empresa_data ON transacoes_financeiras_empresa(data);
+CREATE INDEX IF NOT EXISTS idx_transacoes_pessoais_usuario_id ON transacoes_financeiras_pessoais(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_transacoes_pessoais_tipo ON transacoes_financeiras_pessoais(tipo);
 CREATE INDEX IF NOT EXISTS idx_transacoes_pessoais_data ON transacoes_financeiras_pessoais(data);
 
 -- Índices para operações de trading
+CREATE INDEX IF NOT EXISTS idx_operacoes_trading_usuario_id ON operacoes_trading(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_operacoes_trading_data_hora ON operacoes_trading(data_hora);
 CREATE INDEX IF NOT EXISTS idx_operacoes_trading_ativo ON operacoes_trading(ativo);
 
 -- Índices para estudos
+CREATE INDEX IF NOT EXISTS idx_aulas_usuario_id ON aulas(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_aulas_materia_id ON aulas(materia_id);
 CREATE INDEX IF NOT EXISTS idx_aulas_status ON aulas(status);
 CREATE INDEX IF NOT EXISTS idx_materias_tema_id ON materias_estudo(tema_id);
@@ -603,7 +653,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Aplicar trigger em todas as tabelas
+-- Aplicar trigger em todas as tabelas com updated_at
 DO $$
 DECLARE
   table_name TEXT;
@@ -612,6 +662,12 @@ BEGIN
     SELECT tablename FROM pg_tables 
     WHERE schemaname = 'public' 
     AND tablename NOT LIKE 'pg_%'
+    AND EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = tablename 
+      AND column_name = 'updated_at'
+    )
   LOOP
     EXECUTE format('
       DROP TRIGGER IF EXISTS update_%s_updated_at ON %I;
@@ -636,17 +692,100 @@ BEGIN
     SELECT tablename FROM pg_tables 
     WHERE schemaname = 'public' 
     AND tablename NOT LIKE 'pg_%'
+    AND tablename != 'usuarios' -- usuarios será tratado separadamente
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', table_name);
   END LOOP;
 END $$;
 
--- Políticas básicas (ajustar conforme necessário)
--- Por enquanto, permitir todas as operações para usuários autenticados
--- Você pode personalizar essas políticas conforme sua necessidade de segurança
+-- Política para usuarios: usuários podem ver e editar apenas seus próprios dados
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver seus próprios dados"
+  ON usuarios FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Usuários podem atualizar seus próprios dados"
+  ON usuarios FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Política genérica: usuários autenticados podem ver/editar apenas seus próprios dados
+DO $$
+DECLARE
+  table_name TEXT;
+BEGIN
+  FOR table_name IN 
+    SELECT tablename FROM pg_tables 
+    WHERE schemaname = 'public' 
+    AND tablename NOT LIKE 'pg_%'
+    AND tablename != 'usuarios'
+    AND EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = tablename 
+      AND column_name = 'usuario_id'
+    )
+  LOOP
+    -- Política de SELECT
+    EXECUTE format('
+      DROP POLICY IF EXISTS "Usuários podem ver seus próprios dados" ON %I;
+      CREATE POLICY "Usuários podem ver seus próprios dados"
+        ON %I FOR SELECT
+        USING (auth.uid() = usuario_id);
+    ', table_name, table_name);
+    
+    -- Política de INSERT
+    EXECUTE format('
+      DROP POLICY IF EXISTS "Usuários podem inserir seus próprios dados" ON %I;
+      CREATE POLICY "Usuários podem inserir seus próprios dados"
+        ON %I FOR INSERT
+        WITH CHECK (auth.uid() = usuario_id);
+    ', table_name, table_name);
+    
+    -- Política de UPDATE
+    EXECUTE format('
+      DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios dados" ON %I;
+      CREATE POLICY "Usuários podem atualizar seus próprios dados"
+        ON %I FOR UPDATE
+        USING (auth.uid() = usuario_id);
+    ', table_name, table_name);
+    
+    -- Política de DELETE
+    EXECUTE format('
+      DROP POLICY IF EXISTS "Usuários podem deletar seus próprios dados" ON %I;
+      CREATE POLICY "Usuários podem deletar seus próprios dados"
+        ON %I FOR DELETE
+        USING (auth.uid() = usuario_id);
+    ', table_name, table_name);
+  END LOOP;
+END $$;
+
+-- ============================================
+-- FUNÇÃO PARA CRIAR USUÁRIO NO PERFIL
+-- ============================================
+
+-- Função que cria automaticamente um registro na tabela usuarios quando um usuário se registra no auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.usuarios (id, nome, email, data_registro)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nome', NEW.email),
+    NEW.email,
+    NOW()
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger para criar usuário automaticamente
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
 -- FIM DO SCHEMA
 -- ============================================
-
-

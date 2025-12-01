@@ -1,0 +1,33 @@
+============================================
+⚠️ ERRO: Variáveis de ambiente não configuradas
+============================================
+
+SOLUÇÃO RÁPIDA:
+
+1. Na raiz do projeto, crie um arquivo chamado: .env.local
+
+2. Cole EXATAMENTE este conteúdo no arquivo:
+
+NEXT_PUBLIC_SUPABASE_URL=https://pjbrzajtmgrnltwbvkkj.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqYnJ6YWp0bWdybmx0d2J2a2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MjI3NzcsImV4cCI6MjA4MDE5ODc3N30.tiBE_2MSphmqK7ZzkDPhqPZhnTMRcuzh4qz81AVTZgk
+
+3. Salve o arquivo
+
+4. REINICIE o servidor:
+   - Pare o servidor (Ctrl+C)
+   - Execute novamente: npm run dev
+
+5. O erro deve desaparecer!
+
+============================================
+LOCALIZAÇÃO DO ARQUIVO:
+============================================
+
+O arquivo .env.local deve estar na mesma pasta que:
+- package.json
+- next.config.js
+- app/
+- lib/
+
+============================================
+

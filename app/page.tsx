@@ -11,18 +11,24 @@ export default function Home() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    // Limpar leads de Piracicamirim IMEDIATAMENTE
-    cleanLeadsPiracicamirimImmediate()
-    
-    // Limpar dados mockados IMEDIATAMENTE
-    cleanMockDataImmediate()
-    
-    if (checkAuth()) {
-      router.push('/dashboard')
-    } else {
-      router.push('/login')
+    const verifyAndRedirect = async () => {
+      // Limpar leads de Piracicamirim IMEDIATAMENTE
+      cleanLeadsPiracicamirimImmediate()
+      
+      // Limpar dados mockados IMEDIATAMENTE
+      cleanMockDataImmediate()
+      
+      const isAuth = await checkAuth()
+      
+      if (isAuth) {
+        router.push('/dashboard')
+      } else {
+        router.push('/login')
+      }
+      setChecking(false)
     }
-    setChecking(false)
+
+    verifyAndRedirect()
   }, [checkAuth, router])
 
   if (checking) {
