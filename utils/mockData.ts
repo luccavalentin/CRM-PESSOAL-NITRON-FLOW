@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { Lead } from '@/stores/leadsStore'
 import { Cliente } from '@/stores/clientesStore'
 import { Tarefa, MetaFinanceira, TransacaoFinanceira, Projeto, Ideia } from '@/types'
+import { criarEtapasPadrao } from '@/utils/projetoEtapas'
 
 // Função para inicializar dados mockados
 // DESABILITADA - Não inicializa mais dados mockados automaticamente
@@ -214,14 +215,34 @@ export const initializeMockData = () => {
   // Mock Projetos (3)
   const existingProjetos = JSON.parse(localStorage.getItem('projetos-storage') || '{"state":{"projetos":[]}}')
   if (existingProjetos.state.projetos.length === 0) {
+    // Criar etapas para cada projeto mockado
+    const etapasProjeto1 = criarEtapasPadrao()
+    etapasProjeto1[0].concluida = true
+    etapasProjeto1[1].concluida = true
+    etapasProjeto1[2].concluida = true
+    etapasProjeto1[3].concluida = true
+    etapasProjeto1[4].concluida = true
+    
+    const etapasProjeto2 = criarEtapasPadrao()
+    etapasProjeto2[0].concluida = true
+    etapasProjeto2[1].concluida = true
+    etapasProjeto2[2].concluida = true
+    etapasProjeto2[3].concluida = true
+    etapasProjeto2[4].concluida = true
+    etapasProjeto2[5].concluida = true
+    etapasProjeto2[6].concluida = true
+    
+    const etapasProjeto3 = criarEtapasPadrao()
+    
     const mockProjetos: Projeto[] = [
       {
         id: uuidv4(),
         nome: 'Sistema de Gestão',
         descricao: 'Desenvolvimento de sistema completo',
         status: 'Andamento',
+        etapas: etapasProjeto1,
         etapasConcluidas: 5,
-        totalEtapas: 10,
+        totalEtapas: 7,
         dataInicio: new Date(Date.now() - 2592000000).toISOString().split('T')[0],
         prazo: new Date(Date.now() + 5184000000).toISOString().split('T')[0],
         quantidadeAnexos: 3,
@@ -231,8 +252,9 @@ export const initializeMockData = () => {
         nome: 'Site Institucional',
         descricao: 'Criação de site para cliente',
         status: 'Revisão',
-        etapasConcluidas: 8,
-        totalEtapas: 10,
+        etapas: etapasProjeto2,
+        etapasConcluidas: 7,
+        totalEtapas: 7,
         dataInicio: new Date(Date.now() - 1728000000).toISOString().split('T')[0],
         prazo: new Date(Date.now() + 864000000).toISOString().split('T')[0],
         quantidadeAnexos: 5,
@@ -242,8 +264,9 @@ export const initializeMockData = () => {
         nome: 'App Mobile',
         descricao: 'Desenvolvimento de aplicativo',
         status: 'Pendente',
+        etapas: etapasProjeto3,
         etapasConcluidas: 0,
-        totalEtapas: 15,
+        totalEtapas: 7,
         dataInicio: new Date().toISOString().split('T')[0],
         prazo: new Date(Date.now() + 7776000000).toISOString().split('T')[0],
         quantidadeAnexos: 0,
