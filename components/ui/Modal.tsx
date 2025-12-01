@@ -88,6 +88,7 @@ export default function Modal({
   }
 
   const selectedIcon = Icon || defaultIcons[variant]
+  const SelectedIcon = selectedIcon
   const styles = variantStyles[variant]
 
   // Prevenir scroll do body quando modal estiver aberto
@@ -143,15 +144,15 @@ export default function Modal({
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header com gradiente e ícone */}
-              {(title || selectedIcon) && (
+              {(title || SelectedIcon) && (
                 <div className={`${styles.headerBg} p-6 border-b ${styles.borderColor} rounded-t-xl relative overflow-hidden`}>
                   {/* Efeito de brilho sutil no header */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
                   
                   <div className="flex items-start gap-4 relative z-10">
-                    {selectedIcon && (
+                    {SelectedIcon && (
                       <div className={`${styles.iconBg} p-3 rounded-xl ${styles.iconColor} flex-shrink-0`}>
-                        <selectedIcon className="w-6 h-6" />
+                        <SelectedIcon className="w-6 h-6" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
