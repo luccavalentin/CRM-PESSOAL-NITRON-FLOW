@@ -5,8 +5,10 @@
  * Você pode adaptar seus stores para usar Supabase em vez de localStorage.
  */
 
-import { supabase } from './supabase'
+import { supabase, Database } from './supabase'
 import { Lead } from '@/stores/leadsStore'
+
+type LeadRow = Database['public']['Tables']['leads']['Row']
 
 // ============================================
 // EXEMPLO: Leads Store com Supabase
@@ -26,7 +28,7 @@ export const leadsSupabaseService = {
     }
 
     // Converter formato do banco para formato do store
-    return (data || []).map((lead) => ({
+    return (data || []).map((lead: LeadRow) => ({
       id: lead.id,
       nome: lead.nome,
       email: lead.email || undefined,
@@ -153,7 +155,7 @@ export const leadsSupabaseService = {
       throw error
     }
 
-    return (data || []).map((lead) => ({
+    return (data || []).map((lead: LeadRow) => ({
       id: lead.id,
       nome: lead.nome,
       email: lead.email || undefined,
