@@ -203,7 +203,6 @@ export default function UsuariosPage() {
                 <input
                   type="text"
                   name="nome"
-                  required
                   defaultValue={editingUsuario?.nome}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -215,7 +214,6 @@ export default function UsuariosPage() {
                 <input
                   type="email"
                   name="email"
-                  required
                   defaultValue={editingUsuario?.email}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -229,7 +227,6 @@ export default function UsuariosPage() {
                 <input
                   type="text"
                   name="cargo"
-                  required
                   defaultValue={editingUsuario?.cargo}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -240,7 +237,6 @@ export default function UsuariosPage() {
                 </label>
                 <select
                   name="plano"
-                  required
                   defaultValue={editingUsuario?.plano}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 >
@@ -285,4 +281,5 @@ export default function UsuariosPage() {
     </MainLayout>
   )
 }
+
 

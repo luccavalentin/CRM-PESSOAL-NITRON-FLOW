@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Logo from '@/components/ui/Logo'
 import {
   LayoutDashboard,
   Building2,
@@ -37,9 +38,11 @@ import {
   Utensils,
   Dumbbell,
   Moon,
+  Scale,
   Star,
   Play,
   Settings,
+  Zap,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -144,6 +147,7 @@ const menuItems: MenuItem[] = [
         label: 'Vida Saudável',
         icon: <Apple className="w-3.5 h-3.5" />,
         children: [
+          { id: 'peso', label: 'Peso', path: '/pessoal/vida-saudavel/peso', icon: <Scale className="w-3.5 h-3.5" /> },
           { id: 'alimentacao', label: 'Alimentação', path: '/pessoal/vida-saudavel/alimentacao', icon: <Utensils className="w-3.5 h-3.5" /> },
           { id: 'treinos', label: 'Treinos', path: '/pessoal/vida-saudavel/treinos', icon: <Dumbbell className="w-3.5 h-3.5" /> },
           { id: 'sono', label: 'Sono', path: '/pessoal/vida-saudavel/sono', icon: <Moon className="w-3.5 h-3.5" /> },
@@ -164,6 +168,8 @@ const menuItems: MenuItem[] = [
         icon: <TrendingUp className="w-3.5 h-3.5" />,
         children: [
           { id: 'dashboard-trading', label: 'Dashboard', path: '/pessoal/trading/dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+          { id: 'gerenciamento-risco', label: 'Gerenciamento de Risco', path: '/pessoal/trading/gerenciamento-risco', icon: <Shield className="w-3.5 h-3.5" /> },
+          { id: 'alavancagem', label: 'Alavancagem', path: '/pessoal/trading/alavancagem', icon: <Zap className="w-3.5 h-3.5" /> },
           { id: 'sessao-operacao', label: 'Sessão', path: '/pessoal/trading/sessao', icon: <Play className="w-3.5 h-3.5" /> },
           { id: 'configuracoes-trading', label: 'Configurações', path: '/pessoal/trading/configuracoes', icon: <Settings className="w-3.5 h-3.5" /> },
         ],
@@ -398,16 +404,8 @@ export default function Sidebar() {
         lg:translate-x-0
       `}>
         <div className="sticky top-0 bg-dark-black/95 backdrop-blur-xl border-b border-card-border/50 z-10 shadow-lg">
-          <div className="p-5">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-electric via-accent-electric to-accent-cyan flex items-center justify-center shadow-lg shadow-accent-electric/30">
-                <span className="text-white font-bold text-xl">N</span>
-              </div>
-              <div className="text-center">
-                <h1 className="text-xl font-bold text-white tracking-tight">NITRON FLOW</h1>
-                <p className="text-sm text-gray-300 font-medium">Sistema de Gestão</p>
-              </div>
-            </div>
+          <div className="p-4">
+            <Logo size="sm" showSlogan={false} variant="compact" className="justify-start" />
           </div>
         </div>
         <nav className="p-3.5">

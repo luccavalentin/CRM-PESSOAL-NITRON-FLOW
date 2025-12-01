@@ -4,11 +4,10 @@ import { Cliente } from '@/stores/clientesStore'
 import { Tarefa, MetaFinanceira, TransacaoFinanceira, Projeto, Ideia } from '@/types'
 
 // Função para inicializar dados mockados
+// DESABILITADA - Não inicializa mais dados mockados automaticamente
 export const initializeMockData = () => {
-  // Verificar se já foram inicializados
-  if (localStorage.getItem('mock-data-initialized')) {
-    return
-  }
+  // Função desabilitada - dados mockados não são mais inicializados
+  return
 
   // Mock Leads (3)
   const mockLeads: Lead[] = [

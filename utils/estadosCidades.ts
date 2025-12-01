@@ -71,3 +71,4 @@ export const getEstadoNome = (estadoSigla: string): string => {
   return estado ? estado.nome : estadoSigla
 }
 
+

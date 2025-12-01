@@ -5,8 +5,10 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
-import { Plus, Rocket, CheckCircle2, XCircle, Clock, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Rocket, CheckCircle2, XCircle, Clock, Trash2, Edit2, Link2, ListTodo } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { useTarefasStore } from '@/stores/tarefasStore'
+import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
 
 interface Deploy {
   id: string
@@ -21,8 +23,13 @@ interface Deploy {
 
 export default function DeploysPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isTarefaModalOpen, setIsTarefaModalOpen] = useState(false)
   const [editingDeploy, setEditingDeploy] = useState<Deploy | null>(null)
+  const [deployParaTarefa, setDeployParaTarefa] = useState<Deploy | null>(null)
   const [deploys, setDeploys] = useState<Deploy[]>([])
+  
+  const addTarefa = useTarefasStore((state) => state.addTarefa)
+  const tarefas = useTarefasStore((state) => state.tarefas)
 
   useEffect(() => {
     const saved = localStorage.getItem('deploys-empresa')
@@ -64,6 +71,36 @@ export default function DeploysPage() {
     if (confirm('Tem certeza que deseja excluir este deploy?')) {
       setDeploys(deploys.filter(d => d.id !== id))
     }
+  }
+
+  const handleVincularTarefa = (deploy: Deploy) => {
+    setDeployParaTarefa(deploy)
+    setIsTarefaModalOpen(true)
+  }
+
+  const handleSubmitTarefa = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!deployParaTarefa) return
+
+    const formData = new FormData(e.currentTarget)
+    const novaTarefa: Tarefa = {
+      id: uuidv4(),
+      titulo: (formData.get('titulo') as string) || `Tarefa - Deploy v${deployParaTarefa.versao}`,
+      descricao: formData.get('descricao') as string || undefined,
+      prioridade: (formData.get('prioridade') as Prioridade) || 'Média',
+      categoria: 'Empresarial' as CategoriaTarefa,
+      data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+      status: 'Pendente' as StatusTarefa,
+      tarefaRapida: formData.get('tarefaRapida') === 'on',
+      recorrente: false,
+      concluida: false,
+      etiquetas: [`Deploy: v${deployParaTarefa.versao}`],
+      projetoId: undefined,
+    }
+
+    addTarefa(novaTarefa)
+    setIsTarefaModalOpen(false)
+    setDeployParaTarefa(null)
   }
 
   const deploysSucesso = deploys.filter(d => d.status === 'Sucesso').length
@@ -149,7 +186,29 @@ export default function DeploysPage() {
                           <p className="text-sm text-gray-400 mt-2">{deploy.observacoes}</p>
                         )}
                       </div>
+                      {tarefas.filter(t => 
+                        t.etiquetas?.some(e => e.includes(`v${deploy.versao}`))
+                      ).length > 0 && (
+                        <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                          <div className="flex items-center gap-2 text-xs text-purple-400">
+                            <ListTodo className="w-3 h-3" />
+                            <span>
+                              {tarefas.filter(t => 
+                                t.etiquetas?.some(e => e.includes(`v${deploy.versao}`))
+                              ).length} tarefa(s) vinculada(s)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => handleVincularTarefa(deploy)}
+                          className="p-2 text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors"
+                          title="Vincular Tarefa"
+                        >
+                          <Link2 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => {
                             setEditingDeploy(deploy)
@@ -196,7 +255,6 @@ export default function DeploysPage() {
                 <input
                   type="text"
                   name="versao"
-                  required
                   defaultValue={editingDeploy?.versao}
                   placeholder="Ex: 1.0.0"
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -208,7 +266,6 @@ export default function DeploysPage() {
                 </label>
                 <select
                   name="ambiente"
-                  required
                   defaultValue={editingDeploy?.ambiente}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 >
@@ -225,7 +282,6 @@ export default function DeploysPage() {
               </label>
               <textarea
                 name="descricao"
-                required
                 defaultValue={editingDeploy?.descricao}
                 rows={3}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -239,7 +295,6 @@ export default function DeploysPage() {
                 <input
                   type="text"
                   name="responsavel"
-                  required
                   defaultValue={editingDeploy?.responsavel}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -251,7 +306,6 @@ export default function DeploysPage() {
                 <input
                   type="date"
                   name="data"
-                  required
                   defaultValue={editingDeploy?.data}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -303,4 +357,5 @@ export default function DeploysPage() {
     </MainLayout>
   )
 }
+
 

@@ -37,6 +37,26 @@ export interface Tarefa {
   concluida: boolean
 }
 
+export interface DocumentoEtapa {
+  id: string
+  titulo: string
+  conteudo: string
+  dataCriacao: string
+  tipo: 'nota' | 'link' | 'arquivo'
+  url?: string
+}
+
+export interface EtapaProjeto {
+  id: string
+  numero: number
+  nome: string
+  descricao: string
+  concluida: boolean
+  dataConclusao?: string
+  documentos: DocumentoEtapa[]
+  tarefasIds: string[]
+}
+
 export interface Projeto {
   id: string
   nome: string
@@ -46,6 +66,7 @@ export interface Projeto {
   valor?: number
   etapasConcluidas: number
   totalEtapas: number
+  etapas: EtapaProjeto[]
   dataInicio: string
   prazo?: string
   quantidadeAnexos: number
@@ -81,6 +102,11 @@ export interface TransacaoFinanceira {
   categoria: string
   data: string
   tipo: 'entrada' | 'saida'
+  recorrente?: boolean
+  tipoRecorrencia?: 'diaria' | 'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'trimestral' | 'semestral' | 'anual'
+  dataFim?: string // Data final da recorrência (opcional)
+  transacaoOriginalId?: string // ID da transação original que gerou as recorrentes
+  quantidadeRecorrencias?: number // Quantidade de vezes que deve se repetir
 }
 
 export interface MetaFinanceira {
@@ -101,6 +127,7 @@ export interface GastoRecorrente {
 
 export interface OperacaoTrading {
   id: string
+  numeroOperacao?: number // 1 a 5
   ativo: string
   tipo: TipoOperacao
   resultado: ResultadoOperacao
@@ -217,4 +244,5 @@ export interface BilhetePositivo {
   posicaoX: number
   posicaoY: number
 }
+
 

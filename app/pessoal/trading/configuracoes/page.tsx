@@ -127,6 +127,9 @@ export default function ConfiguracoesTradingPage() {
           onClose={() => setIsModalOpen(false)}
           title={configuracao ? 'Editar Configuração' : 'Nova Configuração'}
           size="lg"
+          variant="warning"
+          icon={Settings}
+          description={configuracao ? 'Atualize os parâmetros de trading' : 'Configure seus limites, stops e parâmetros de trading para operar com segurança'}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

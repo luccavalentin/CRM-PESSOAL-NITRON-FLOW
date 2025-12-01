@@ -9,6 +9,7 @@ import { useTradingStore } from '@/stores/tradingStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { OperacaoTrading, TipoOperacao, ResultadoOperacao } from '@/types'
+import ForexAutocomplete from '@/components/ui/ForexAutocomplete'
 import { Plus, TrendingUp, TrendingDown, Trash2, Edit2, Calendar } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -194,15 +195,18 @@ export default function SessaoTradingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Ativo *
+                  Ativo FOREX *
                 </label>
-                <input
-                  type="text"
-                  name="ativo"
+                <ForexAutocomplete
+                  value={editingOperacao?.ativo || ''}
+                  onChange={(value) => {
+                    if (editingOperacao) {
+                      setEditingOperacao({ ...editingOperacao, ativo: value })
+                    }
+                  }}
+                  placeholder="Digite para buscar ativo FOREX..."
                   required
-                  defaultValue={editingOperacao?.ativo}
-                  placeholder="Ex: PETR4, USD/BRL..."
-                  className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                  name="ativo"
                 />
               </div>
               <div>

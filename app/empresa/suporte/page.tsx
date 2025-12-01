@@ -226,7 +226,6 @@ export default function SuportePage() {
               <input
                 type="text"
                 name="titulo"
-                required
                 defaultValue={editingTicket?.titulo}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
@@ -237,7 +236,6 @@ export default function SuportePage() {
               </label>
               <textarea
                 name="descricao"
-                required
                 defaultValue={editingTicket?.descricao}
                 rows={4}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -250,7 +248,6 @@ export default function SuportePage() {
                 </label>
                 <select
                   name="categoria"
-                  required
                   defaultValue={editingTicket?.categoria}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 >
@@ -285,7 +282,6 @@ export default function SuportePage() {
                 <input
                   type="text"
                   name="solicitante"
-                  required
                   defaultValue={editingTicket?.solicitante}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
@@ -340,4 +336,5 @@ export default function SuportePage() {
     </MainLayout>
   )
 }
+
 

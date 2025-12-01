@@ -8,18 +8,32 @@ import { useProjetosStore } from '@/stores/projetosStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { Projeto, StatusProjeto } from '@/types'
-import { Plus, Edit, Trash2, TrendingUp } from 'lucide-react'
+import { Plus, Edit, Trash2, TrendingUp, CheckCircle2, Circle, ChevronDown, ChevronUp, FileText, ListTodo, Rocket, X } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { useTarefasStore } from '@/stores/tarefasStore'
+import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa, DocumentoEtapa } from '@/types'
 
 export default function ProjetosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProjeto, setEditingProjeto] = useState<Projeto | null>(null)
   const [filtroStatus, setFiltroStatus] = useState<StatusProjeto | 'Todos'>('Todos')
+  const [projetoEtapasAberto, setProjetoEtapasAberto] = useState<string | null>(null)
+  const [etapaSelecionada, setEtapaSelecionada] = useState<{ projetoId: string; etapaId: string } | null>(null)
+  const [isDocumentoModalOpen, setIsDocumentoModalOpen] = useState(false)
+  const [isTarefaModalOpen, setIsTarefaModalOpen] = useState(false)
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false)
+  const [projetoParaDeploy, setProjetoParaDeploy] = useState<Projeto | null>(null)
 
   const projetos = useProjetosStore((state) => state.projetos)
   const addProjeto = useProjetosStore((state) => state.addProjeto)
   const updateProjeto = useProjetosStore((state) => state.updateProjeto)
   const deleteProjeto = useProjetosStore((state) => state.deleteProjeto)
+  const atualizarEtapa = useProjetosStore((state) => state.atualizarEtapa)
+  const adicionarDocumentoEtapa = useProjetosStore((state) => state.adicionarDocumentoEtapa)
+  const adicionarTarefaEtapa = useProjetosStore((state) => state.adicionarTarefaEtapa)
+  
+  const addTarefa = useTarefasStore((state) => state.addTarefa)
+  const tarefas = useTarefasStore((state) => state.tarefas)
 
   const projetosFiltrados = filtroStatus === 'Todos'
     ? projetos
@@ -31,13 +45,14 @@ export default function ProjetosPage() {
     
     const novoProjeto: Projeto = {
       id: editingProjeto?.id || uuidv4(),
-      nome: formData.get('nome') as string,
-      descricao: formData.get('descricao') as string,
+      nome: (formData.get('nome') as string) || 'Sem nome',
+      descricao: (formData.get('descricao') as string) || '',
       status: (formData.get('status') as StatusProjeto) || 'Pendente',
       cliente: formData.get('cliente') as string || undefined,
       valor: formData.get('valor') ? parseFloat(formData.get('valor') as string) : undefined,
       etapasConcluidas: editingProjeto?.etapasConcluidas || 0,
-      totalEtapas: parseInt(formData.get('totalEtapas') as string) || 1,
+      totalEtapas: 7, // Sempre 7 etapas padrão
+      etapas: editingProjeto?.etapas || [], // Será preenchido automaticamente pelo store
       dataInicio: formData.get('dataInicio') as string || new Date().toISOString().split('T')[0],
       prazo: formData.get('prazo') as string || undefined,
       quantidadeAnexos: editingProjeto?.quantidadeAnexos || 0,
@@ -160,8 +175,135 @@ export default function ProjetosPage() {
                         />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        {projeto.etapasConcluidas} de {projeto.totalEtapas} etapas
+                        {projeto.etapasConcluidas || 0} de {projeto.totalEtapas || 7} etapas
                       </p>
+                    </div>
+
+                    {/* Etapas do Projeto */}
+                    <div className="border-t border-dark-lighter pt-3">
+                      <button
+                        onClick={() => setProjetoEtapasAberto(projetoEtapasAberto === projeto.id ? null : projeto.id)}
+                        className="w-full flex items-center justify-between text-sm text-gray-400 hover:text-white transition-colors"
+                      >
+                        <span className="font-medium">Etapas do Projeto</span>
+                        {projetoEtapasAberto === projeto.id ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {projetoEtapasAberto === projeto.id && (
+                        <div className="mt-3 space-y-2 max-h-96 overflow-y-auto">
+                          {(projeto.etapas || []).map((etapa) => {
+                            const tarefasEtapa = tarefas.filter(t => etapa.tarefasIds?.includes(t.id))
+                            return (
+                              <div
+                                key={etapa.id}
+                                className={`p-3 rounded-lg border transition-all ${
+                                  etapa.concluida
+                                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                                    : 'bg-dark-black/50 border-card-border/50'
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <button
+                                    onClick={() => atualizarEtapa(projeto.id, etapa.id, !etapa.concluida)}
+                                    className="mt-0.5 flex-shrink-0"
+                                  >
+                                    {etapa.concluida ? (
+                                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                    ) : (
+                                      <Circle className="w-5 h-5 text-gray-500 hover:text-emerald-400 transition-colors" />
+                                    )}
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`text-xs font-semibold mb-1 ${
+                                      etapa.concluida ? 'text-emerald-300 line-through' : 'text-white'
+                                    }`}>
+                                      {etapa.nome}
+                                    </div>
+                                    {etapa.descricao && (
+                                      <div className="text-xs text-gray-400 mb-2 whitespace-pre-line">
+                                        {etapa.descricao}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Documentos */}
+                                    {etapa.documentos && etapa.documentos.length > 0 && (
+                                      <div className="mb-2">
+                                        <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                          <FileText className="w-3 h-3" />
+                                          Documentos ({etapa.documentos.length})
+                                        </div>
+                                        <div className="space-y-1">
+                                          {etapa.documentos.map((doc) => (
+                                            <div key={doc.id} className="text-xs text-gray-400 bg-dark-black/30 p-1.5 rounded">
+                                              {doc.tipo === 'link' ? (
+                                                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-accent-electric hover:underline">
+                                                  {doc.titulo}
+                                                </a>
+                                              ) : (
+                                                <span>{doc.titulo}</span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Tarefas */}
+                                    {tarefasEtapa.length > 0 && (
+                                      <div className="mb-2">
+                                        <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                          <ListTodo className="w-3 h-3" />
+                                          Tarefas ({tarefasEtapa.length})
+                                        </div>
+                                        <div className="space-y-1">
+                                          {tarefasEtapa.map((tarefa) => (
+                                            <div key={tarefa.id} className="text-xs text-gray-400 bg-dark-black/30 p-1.5 rounded flex items-center justify-between">
+                                              <span className={tarefa.concluida ? 'line-through' : ''}>{tarefa.titulo}</span>
+                                              <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                                tarefa.concluida ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'
+                                              }`}>
+                                                {tarefa.status}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Botões de Ação */}
+                                    <div className="flex gap-2 mt-2">
+                                      <button
+                                        onClick={() => {
+                                          setEtapaSelecionada({ projetoId: projeto.id, etapaId: etapa.id })
+                                          setIsDocumentoModalOpen(true)
+                                        }}
+                                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded transition-colors"
+                                      >
+                                        <FileText className="w-3 h-3" />
+                                        Documentar
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEtapaSelecionada({ projetoId: projeto.id, etapaId: etapa.id })
+                                          setIsTarefaModalOpen(true)
+                                        }}
+                                        className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded transition-colors"
+                                      >
+                                        <ListTodo className="w-3 h-3" />
+                                        Criar Tarefa
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     {projeto.cliente && (
@@ -188,11 +330,25 @@ export default function ProjetosPage() {
                       >
                         {projeto.status}
                       </span>
-                      {projeto.prazo && (
-                        <span className="text-xs text-gray-400">
-                          Prazo: {new Date(projeto.prazo).toLocaleDateString('pt-BR')}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {progresso === 100 && (
+                          <Button
+                            onClick={() => {
+                              setProjetoParaDeploy(projeto)
+                              setIsDeployModalOpen(true)
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <Rocket className="w-3 h-3" />
+                            Criar Deploy
+                          </Button>
+                        )}
+                        {projeto.prazo && (
+                          <span className="text-xs text-gray-400">
+                            Prazo: {new Date(projeto.prazo).toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -213,28 +369,29 @@ export default function ProjetosPage() {
           setEditingProjeto(null)
         }}
         title={editingProjeto ? 'Editar Projeto' : 'Novo Projeto'}
+        description={editingProjeto ? 'Atualize as informações do projeto' : 'Crie um novo projeto com etapas pré-definidas'}
         size="lg"
+        variant="default"
+        icon={editingProjeto ? Edit : Plus}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Nome do Projeto *
+              Nome do Projeto
             </label>
             <input
               type="text"
               name="nome"
-              required
               defaultValue={editingProjeto?.nome}
               className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Descrição *
+              Descrição
             </label>
             <textarea
               name="descricao"
-              required
               defaultValue={editingProjeto?.descricao}
               rows={4}
               className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -243,12 +400,11 @@ export default function ProjetosPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Status *
+                Status
               </label>
               <select
                 name="status"
-                required
-                defaultValue={editingProjeto?.status}
+                defaultValue={editingProjeto?.status || 'Pendente'}
                 className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               >
                 <option value="Pendente">Pendente</option>
@@ -260,16 +416,11 @@ export default function ProjetosPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Total de Etapas *
+                Etapas Padrão
               </label>
-              <input
-                type="number"
-                name="totalEtapas"
-                required
-                min="1"
-                defaultValue={editingProjeto?.totalEtapas || 1}
-                className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
-              />
+              <div className="px-5 py-3 bg-card-bg/50 border border-card-border rounded-xl text-gray-400 text-sm">
+                Todos os projetos têm automaticamente 7 etapas padrão vinculadas
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -335,6 +486,350 @@ export default function ProjetosPage() {
             <Button type="submit">Salvar</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de Documento */}
+      <Modal
+        isOpen={isDocumentoModalOpen}
+        onClose={() => {
+          setIsDocumentoModalOpen(false)
+          setEtapaSelecionada(null)
+        }}
+        title="Adicionar Documento à Etapa"
+        size="md"
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          if (!etapaSelecionada) return
+          
+          const formData = new FormData(e.currentTarget)
+          const tipo = formData.get('tipo') as 'nota' | 'link' | 'arquivo'
+          const documento: DocumentoEtapa = {
+            id: uuidv4(),
+            titulo: (formData.get('titulo') as string) || 'Sem título',
+            conteudo: (formData.get('conteudo') as string) || '',
+            tipo,
+            url: tipo === 'link' ? (formData.get('url') as string) : undefined,
+            dataCriacao: new Date().toISOString(),
+          }
+          
+          adicionarDocumentoEtapa(etapaSelecionada.projetoId, etapaSelecionada.etapaId, documento)
+          setIsDocumentoModalOpen(false)
+          setEtapaSelecionada(null)
+        }} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Tipo
+            </label>
+            <select
+              name="tipo"
+              id="tipo-documento"
+              defaultValue="nota"
+              onChange={(e) => {
+                const urlField = document.getElementById('url-field') as HTMLElement
+                if (urlField) {
+                  urlField.style.display = e.target.value === 'link' ? 'block' : 'none'
+                }
+              }}
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            >
+              <option value="nota">Nota/Texto</option>
+              <option value="link">Link/URL</option>
+              <option value="arquivo">Arquivo (referência)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Título
+            </label>
+            <input
+              type="text"
+              name="titulo"
+              placeholder="Título do documento"
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Conteúdo/Descrição
+            </label>
+            <textarea
+              name="conteudo"
+              rows={4}
+              placeholder="Descrição, notas ou referências..."
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            />
+          </div>
+          <div id="url-field" style={{ display: 'none' }}>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              URL
+            </label>
+            <input
+              type="url"
+              name="url"
+              placeholder="https://..."
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button type="submit" className="flex-1">
+              Adicionar Documento
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsDocumentoModalOpen(false)
+                setEtapaSelecionada(null)
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal de Tarefa */}
+      <Modal
+        isOpen={isTarefaModalOpen}
+        onClose={() => {
+          setIsTarefaModalOpen(false)
+          setEtapaSelecionada(null)
+        }}
+        title="Criar Tarefa para Etapa"
+        size="md"
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          if (!etapaSelecionada) return
+          
+          const formData = new FormData(e.currentTarget)
+          const projeto = projetos.find(p => p.id === etapaSelecionada.projetoId)
+          if (!projeto) return
+          
+          const novaTarefa: Tarefa = {
+            id: uuidv4(),
+            titulo: (formData.get('titulo') as string) || 'Sem título',
+            descricao: formData.get('descricao') as string || undefined,
+            prioridade: (formData.get('prioridade') as Prioridade) || 'Média',
+            categoria: 'Projeto' as CategoriaTarefa,
+            data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+            status: 'Pendente' as StatusTarefa,
+            tarefaRapida: formData.get('tarefaRapida') === 'on',
+            recorrente: false,
+            projetoId: projeto.id,
+            concluida: false,
+            etiquetas: [],
+          }
+          
+          addTarefa(novaTarefa)
+          adicionarTarefaEtapa(etapaSelecionada.projetoId, etapaSelecionada.etapaId, novaTarefa.id)
+          setIsTarefaModalOpen(false)
+          setEtapaSelecionada(null)
+        }} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Título da Tarefa
+            </label>
+            <input
+              type="text"
+              name="titulo"
+              placeholder="Ex: Implementar funcionalidade X"
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Descrição
+            </label>
+            <textarea
+              name="descricao"
+              rows={3}
+              placeholder="Detalhes da tarefa..."
+              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Prioridade
+              </label>
+              <select
+                name="prioridade"
+                defaultValue="Média"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              >
+                <option value="Baixa">Baixa</option>
+                <option value="Média">Média</option>
+                <option value="Alta">Alta</option>
+                <option value="Urgente">Urgente</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Data
+              </label>
+              <input
+                type="date"
+                name="data"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="tarefaRapida"
+                className="w-4 h-4 rounded border-card-border bg-card-bg text-accent-electric focus:ring-accent-electric"
+              />
+              <span className="text-sm text-gray-300">Tarefa Rápida (2 min)</span>
+            </label>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button type="submit" className="flex-1">
+              Criar Tarefa
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsTarefaModalOpen(false)
+                setEtapaSelecionada(null)
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal de Deploy */}
+      <Modal
+        isOpen={isDeployModalOpen}
+        onClose={() => {
+          setIsDeployModalOpen(false)
+          setProjetoParaDeploy(null)
+        }}
+        title="Criar Deploy do Projeto"
+        size="md"
+      >
+        {projetoParaDeploy && (
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            if (!projetoParaDeploy) return
+            
+            const formData = new FormData(e.currentTarget)
+            const deploys = JSON.parse(localStorage.getItem('deploys-empresa') || '[]')
+            
+            const novoDeploy = {
+              id: uuidv4(),
+              versao: formData.get('versao') as string,
+              ambiente: formData.get('ambiente') as string,
+              descricao: `Deploy do projeto: ${projetoParaDeploy.nome}`,
+              responsavel: formData.get('responsavel') as string,
+              data: formData.get('data') as string || new Date().toISOString().split('T')[0],
+              status: 'Em Andamento' as const,
+              observacoes: formData.get('observacoes') as string || undefined,
+              projetoId: projetoParaDeploy.id,
+            }
+            
+            deploys.push(novoDeploy)
+            localStorage.setItem('deploys-empresa', JSON.stringify(deploys))
+            
+            // Atualizar status do projeto para Entregue
+            updateProjeto(projetoParaDeploy.id, { status: 'Entregue' })
+            
+            setIsDeployModalOpen(false)
+            setProjetoParaDeploy(null)
+            alert('Deploy criado com sucesso!')
+          }} className="space-y-4">
+            <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg mb-4">
+              <p className="text-sm text-blue-300">
+                Projeto: <strong>{projetoParaDeploy.nome}</strong>
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Todas as etapas foram concluídas (100%)
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Versão
+                </label>
+                <input
+                  type="text"
+                  name="versao"
+                  placeholder="Ex: 1.0.0"
+                  className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Ambiente
+                </label>
+                <select
+                  name="ambiente"
+                  className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                >
+                  <option value="Produção">Produção</option>
+                  <option value="Homologação">Homologação</option>
+                  <option value="Desenvolvimento">Desenvolvimento</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Responsável
+              </label>
+              <input
+                type="text"
+                name="responsavel"
+                placeholder="Nome do responsável"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Data do Deploy
+              </label>
+              <input
+                type="date"
+                name="data"
+                defaultValue={new Date().toISOString().split('T')[0]}
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Observações
+              </label>
+              <textarea
+                name="observacoes"
+                rows={3}
+                placeholder="Observações sobre o deploy..."
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+                <Rocket className="w-4 h-4 mr-2" />
+                Criar Deploy
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setIsDeployModalOpen(false)
+                  setProjetoParaDeploy(null)
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </MainLayout>
   )

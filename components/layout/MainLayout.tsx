@@ -46,7 +46,7 @@ export default function MainLayout({
       <Sidebar />
       <div className="lg:ml-64">
         <Header />
-        <main className="pt-16 lg:pt-20 pb-8 p-4 sm:p-6 lg:p-8 mt-0">{children}</main>
+        <main className="pt-16 sm:pt-16 lg:pt-20 pb-8 px-2 sm:px-4 lg:px-8 mt-0">{children}</main>
       </div>
     </div>
   )

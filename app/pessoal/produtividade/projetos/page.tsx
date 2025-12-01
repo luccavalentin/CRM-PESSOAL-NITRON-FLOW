@@ -1,28 +1,65 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
 import { useProjetosPessoaisStore } from '@/stores/projetosPessoaisStore'
 import { ProjetoPessoal, StatusProjetoPessoal } from '@/types'
-import { Plus, FolderKanban, TrendingUp, Trash2, Edit2, Calendar } from 'lucide-react'
+import { Plus, FolderKanban, TrendingUp, Trash2, Edit2, Calendar, BarChart3, PieChart as PieChartIcon, Search, Filter } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts'
+
+const COLORS = ['#00D9FF', '#7C3AED', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
 
 export default function ProjetosPessoaisPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProjeto, setEditingProjeto] = useState<ProjetoPessoal | null>(null)
   const [filtroStatus, setFiltroStatus] = useState<StatusProjetoPessoal | 'Todos'>('Todos')
+  const [busca, setBusca] = useState('')
 
   const projetos = useProjetosPessoaisStore((state) => state.projetos)
   const addProjeto = useProjetosPessoaisStore((state) => state.addProjeto)
   const updateProjeto = useProjetosPessoaisStore((state) => state.updateProjeto)
   const deleteProjeto = useProjetosPessoaisStore((state) => state.deleteProjeto)
 
-  const projetosFiltrados = filtroStatus === 'Todos'
-    ? projetos
-    : projetos.filter((p) => p.status === filtroStatus)
+  // Filtros
+  const projetosFiltrados = useMemo(() => {
+    return projetos.filter(projeto => {
+      const matchStatus = filtroStatus === 'Todos' || projeto.status === filtroStatus
+      const matchBusca = !busca || projeto.nome.toLowerCase().includes(busca.toLowerCase()) ||
+                        (projeto.descricao && projeto.descricao.toLowerCase().includes(busca.toLowerCase()))
+      return matchStatus && matchBusca
+    })
+  }, [projetos, filtroStatus, busca])
+
+  // Estatísticas
+  const projetosEmAndamento = projetos.filter(p => p.status === 'Em Andamento').length
+  const projetosConcluidos = projetos.filter(p => p.status === 'Concluído').length
+  const projetosPausados = projetos.filter(p => p.status === 'Pausado').length
+  const projetosCancelados = projetos.filter(p => p.status === 'Cancelado').length
+  const progressoMedio = projetos.length > 0
+    ? Math.round(projetos.reduce((acc, p) => acc + p.progresso, 0) / projetos.length)
+    : 0
+
+  // Dados para gráficos
+  const dadosStatus = useMemo(() => {
+    return [
+      { name: 'Em Andamento', value: projetosEmAndamento, color: '#00D9FF' },
+      { name: 'Concluído', value: projetosConcluidos, color: '#10B981' },
+      { name: 'Pausado', value: projetosPausados, color: '#F59E0B' },
+      { name: 'Cancelado', value: projetosCancelados, color: '#EF4444' },
+      { name: 'Planejamento', value: projetos.filter(p => p.status === 'Planejamento').length, color: '#7C3AED' },
+    ]
+  }, [projetos, projetosEmAndamento, projetosConcluidos, projetosPausados, projetosCancelados])
+
+  const dadosProgresso = useMemo(() => {
+    return projetos.map(projeto => ({
+      nome: projeto.nome.length > 15 ? projeto.nome.substring(0, 15) + '...' : projeto.nome,
+      progresso: projeto.progresso,
+    })).sort((a, b) => b.progresso - a.progresso)
+  }, [projetos])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -30,8 +67,8 @@ export default function ProjetosPessoaisPage() {
     
     const novoProjeto: ProjetoPessoal = {
       id: editingProjeto?.id || uuidv4(),
-      nome: formData.get('nome') as string,
-      descricao: formData.get('descricao') as string,
+      nome: (formData.get('nome') as string) || 'Sem nome',
+      descricao: (formData.get('descricao') as string) || '',
       status: (formData.get('status') as StatusProjetoPessoal) || 'Planejamento',
       dataInicio: formData.get('dataInicio') as string || new Date().toISOString().split('T')[0],
       prazo: formData.get('prazo') as string || undefined,
@@ -55,12 +92,6 @@ export default function ProjetosPessoaisPage() {
     }
   }
 
-  const projetosEmAndamento = projetos.filter(p => p.status === 'Em Andamento').length
-  const projetosConcluidos = projetos.filter(p => p.status === 'Concluído').length
-  const progressoMedio = projetos.length > 0
-    ? Math.round(projetos.reduce((acc, p) => acc + p.progresso, 0) / projetos.length)
-    : 0
-
   const getStatusColor = (status: StatusProjetoPessoal) => {
     switch (status) {
       case 'Em Andamento':
@@ -78,11 +109,11 @@ export default function ProjetosPessoaisPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-[1600px] mx-auto space-y-6 p-4 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Projetos Pessoais</h1>
-            <p className="text-gray-400">Gerencie seus projetos pessoais</p>
+            <p className="text-gray-400">Gerencie seus projetos pessoais com acompanhamento detalhado</p>
           </div>
           <Button
             onClick={() => {
@@ -96,72 +127,176 @@ export default function ProjetosPessoaisPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
           <StatCard
-            title="Projetos em Andamento"
+            title="Em Andamento"
             value={projetosEmAndamento}
             icon={FolderKanban}
             valueColor="text-blue-400"
+            className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20"
           />
           <StatCard
-            title="Projetos Concluídos"
+            title="Concluídos"
             value={projetosConcluidos}
             icon={TrendingUp}
             valueColor="text-emerald-400"
+            className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
+          />
+          <StatCard
+            title="Pausados"
+            value={projetosPausados}
+            icon={FolderKanban}
+            valueColor="text-yellow-400"
+            className="bg-gradient-to-br from-yellow-500/10 to-orange-600/5 border-yellow-500/20"
           />
           <StatCard
             title="Progresso Médio"
             value={`${progressoMedio}%`}
-            icon={FolderKanban}
+            icon={TrendingUp}
             valueColor="text-accent-electric"
+            className="bg-gradient-to-br from-accent-electric/10 to-accent-cyan/5 border-accent-electric/20"
+          />
+          <StatCard
+            title="Total"
+            value={projetos.length}
+            icon={FolderKanban}
+            className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20"
           />
         </div>
 
-        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4">
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value as StatusProjetoPessoal | 'Todos')}
-            className="px-4 py-2 bg-dark-black/50 border border-card-border/50 rounded-lg text-white text-sm focus:outline-none focus:border-accent-electric/50 focus:ring-1 focus:ring-accent-electric/30"
-          >
-            <option value="Todos">Todos os Status</option>
-            <option value="Planejamento">Planejamento</option>
-            <option value="Em Andamento">Em Andamento</option>
-            <option value="Pausado">Pausado</option>
-            <option value="Concluído">Concluído</option>
-            <option value="Cancelado">Cancelado</option>
-          </select>
+        {/* Gráficos */}
+        {projetos.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <PieChartIcon className="w-5 h-5 text-accent-electric" />
+                <h3 className="text-lg font-bold text-white">Distribuição por Status</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={dadosStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => value > 0 ? `${name}: ${value}` : ''}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {dadosStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-5 h-5 text-accent-electric" />
+                <h3 className="text-lg font-bold text-white">Progresso dos Projetos</h3>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dadosProgresso}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="nome" 
+                    stroke="#9CA3AF" 
+                    fontSize={12}
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                  />
+                  <YAxis stroke="#9CA3AF" domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number) => `${value}%`}
+                  />
+                  <Bar dataKey="progresso" radius={[8, 8, 0, 0]}>
+                    {dadosProgresso.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Filtros */}
+        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar projeto..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-dark-black/50 border border-card-border/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-accent-electric/50 focus:ring-1 focus:ring-accent-electric/30"
+              />
+            </div>
+            <select
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value as StatusProjetoPessoal | 'Todos')}
+              className="px-4 py-2.5 bg-dark-black/50 border border-card-border/50 rounded-lg text-white text-sm focus:outline-none focus:border-accent-electric/50 focus:ring-1 focus:ring-accent-electric/30"
+            >
+              <option value="Todos">Todos os Status</option>
+              <option value="Planejamento">Planejamento</option>
+              <option value="Em Andamento">Em Andamento</option>
+              <option value="Pausado">Pausado</option>
+              <option value="Concluído">Concluído</option>
+              <option value="Cancelado">Cancelado</option>
+            </select>
+          </div>
         </div>
 
+        {/* Lista de Projetos */}
         <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <FolderKanban className="w-5 h-5 text-accent-electric" />
-            Todos os Projetos
+            Todos os Projetos ({projetosFiltrados.length})
           </h2>
           {projetosFiltrados.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projetosFiltrados.map((projeto) => (
                 <div
                   key={projeto.id}
-                  className="p-5 bg-dark-black/50 border border-card-border/50 rounded-xl hover:border-accent-electric/30 transition-all"
+                  className="p-5 bg-dark-black/50 border border-card-border/50 rounded-xl hover:border-accent-electric/30 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="text-white font-semibold text-lg mb-1">{projeto.nome}</h3>
                       <p className="text-gray-400 text-sm mb-3 line-clamp-2">{projeto.descricao}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => {
                           setEditingProjeto(projeto)
                           setIsModalOpen(true)
                         }}
                         className="p-2 text-accent-electric hover:bg-accent-electric/10 rounded-lg transition-colors"
+                        title="Editar"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(projeto.id)}
                         className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Excluir"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -172,12 +307,16 @@ export default function ProjetosPessoaisPage() {
                       <span className={`px-2.5 py-1 rounded-lg font-semibold border ${getStatusColor(projeto.status)}`}>
                         {projeto.status}
                       </span>
-                      <span className="text-gray-400">{projeto.progresso}%</span>
+                      <span className="text-gray-400 font-semibold">{projeto.progresso}%</span>
                     </div>
-                    <div className="w-full bg-dark-black rounded-full h-2">
+                    <div className="w-full bg-dark-black rounded-full h-3">
                       <div
-                        className="bg-gradient-to-r from-accent-electric to-accent-cyan h-2 rounded-full transition-all"
-                        style={{ width: `${projeto.progresso}%` }}
+                        className={`h-3 rounded-full transition-all ${
+                          projeto.progresso >= 100 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                          projeto.progresso >= 50 ? 'bg-gradient-to-r from-accent-electric to-accent-cyan' :
+                          'bg-gradient-to-r from-yellow-500 to-orange-500'
+                        }`}
+                        style={{ width: `${Math.min(projeto.progresso, 100)}%` }}
                       />
                     </div>
                   </div>
@@ -191,6 +330,13 @@ export default function ProjetosPessoaisPage() {
                       </>
                     )}
                   </div>
+                  {projeto.tarefasVinculadas && projeto.tarefasVinculadas.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-card-border/50">
+                      <p className="text-xs text-gray-400">
+                        {projeto.tarefasVinculadas.length} {projeto.tarefasVinculadas.length === 1 ? 'tarefa vinculada' : 'tarefas vinculadas'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -198,7 +344,7 @@ export default function ProjetosPessoaisPage() {
             <div className="text-center py-16">
               <FolderKanban className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-400 text-lg font-medium">Nenhum projeto encontrado</p>
-              <p className="text-gray-500 text-sm mt-1">Comece criando seu primeiro projeto</p>
+              <p className="text-gray-500 text-sm mt-1">Ajuste os filtros ou crie seu primeiro projeto</p>
             </div>
           )}
         </div>
@@ -211,27 +357,28 @@ export default function ProjetosPessoaisPage() {
           }}
           title={editingProjeto ? 'Editar Projeto' : 'Novo Projeto'}
           size="lg"
+          variant="info"
+          icon={FolderKanban}
+          description={editingProjeto ? 'Atualize as informações do seu projeto pessoal' : 'Crie um novo projeto pessoal para organizar suas atividades'}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Nome do Projeto *
+                Nome do Projeto
               </label>
               <input
                 type="text"
                 name="nome"
-                required
                 defaultValue={editingProjeto?.nome}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descrição *
+                Descrição
               </label>
               <textarea
                 name="descricao"
-                required
                 defaultValue={editingProjeto?.descricao}
                 rows={4}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -313,4 +460,3 @@ export default function ProjetosPessoaisPage() {
     </MainLayout>
   )
 }
-

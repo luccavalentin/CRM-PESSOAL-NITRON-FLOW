@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="faviconFlowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00D9FF"/>
+      <stop offset="50%" stop-color="#00D4FF"/>
+      <stop offset="100%" stop-color="#00D9FF"/>
+    </linearGradient>
+    <linearGradient id="faviconNitronGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0E0E0"/>
+    </linearGradient>
+    <filter id="faviconGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="faviconStrongGlow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" fill="#0a0a15" rx="40"/>
+  
+  <!-- NITRON Text -->
+  <text
+    x="100"
+    y="85"
+    font-size="42"
+    font-weight="900"
+    fill="url(#faviconNitronGrad)"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    letter-spacing="3"
+    stroke="#000000"
+    stroke-width="0.5"
+    stroke-opacity="0.2"
+  >
+    NITRON
+  </text>
+  
+  <!-- FLOW Text with glow -->
+  <g filter="url(#faviconStrongGlow)">
+    <text
+      x="100"
+      y="135"
+      font-size="42"
+      font-weight="900"
+      fill="url(#faviconFlowGrad)"
+      text-anchor="middle"
+      font-family="system-ui, -apple-system, sans-serif"
+      letter-spacing="3"
+    >
+      FLOW
+    </text>
+  </g>
+  
+  <!-- Data flow dots after L -->
+  <g opacity="1">
+    <circle cx="75" cy="125" r="2.5" fill="#00D9FF" filter="url(#faviconGlow)"/>
+    <circle cx="85" cy="125" r="2.5" fill="#00D9FF" filter="url(#faviconGlow)"/>
+    <circle cx="95" cy="125" r="2.5" fill="#00D9FF" filter="url(#faviconGlow)"/>
+    <line x1="75" y1="125" x2="95" y2="125" stroke="#00D9FF" stroke-width="2" opacity="0.7"/>
+  </g>
+  
+  <!-- Lightning bolt in O -->
+  <g filter="url(#faviconGlow)">
+    <circle cx="110" cy="125" r="10" fill="none" stroke="url(#faviconFlowGrad)" stroke-width="2.5"/>
+    <path d="M 104 119 L 110 125 L 106 125 L 115 134 L 110 128 L 113 128 Z" fill="url(#faviconFlowGrad)"/>
+  </g>
+  
+  <!-- Decorative circle -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="url(#faviconFlowGrad)" stroke-width="2" opacity="0.15"/>
+</svg>

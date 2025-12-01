@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
-import { initializeMockData } from '@/utils/mockData'
+import { cleanLeadsPiracicamirimImmediate, cleanMockDataImmediate } from '@/utils/cleanDataImmediate'
 
 export default function Home() {
   const router = useRouter()
@@ -11,8 +11,11 @@ export default function Home() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    // Inicializar dados mockados
-    initializeMockData()
+    // Limpar leads de Piracicamirim IMEDIATAMENTE
+    cleanLeadsPiracicamirimImmediate()
+    
+    // Limpar dados mockados IMEDIATAMENTE
+    cleanMockDataImmediate()
     
     if (checkAuth()) {
       router.push('/dashboard')

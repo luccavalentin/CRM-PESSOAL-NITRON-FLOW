@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
+import Logo from '@/components/ui/Logo'
 import { Building2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
@@ -66,14 +67,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-dark-deep flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo e Título */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-electric via-accent-electric to-accent-cyan flex items-center justify-center shadow-xl shadow-accent-electric/30">
-              <span className="text-white font-bold text-3xl">N</span>
-            </div>
-          </div>
-          <h1 className="text-4xl font-extrabold text-white mb-2">NITRON FLOW</h1>
-          <p className="text-gray-400 text-lg">Sistema de Gestão Empresarial</p>
+        <div className="text-center mb-10">
+          <Logo size="lg" showSlogan={true} variant="full" className="mb-6" />
         </div>
 
         {/* Card de Login */}
@@ -150,7 +145,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-accent-electric to-accent-cyan hover:from-accent-electric/90 hover:to-accent-cyan/90 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-accent-electric/20 hover:shadow-xl hover:shadow-accent-electric/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/40 hover:shadow-xl hover:shadow-blue-600/60 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -10,6 +10,7 @@ import { MetaFinanceira } from '@/types'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { Plus, Target, TrendingUp, Calendar, Trash2, Edit2 } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 
 export default function ObjetivosFinanceirosPessoaisPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -65,13 +66,35 @@ export default function ObjetivosFinanceirosPessoaisPage() {
   const totalAtual = metas.reduce((acc, m) => acc + m.valorAtual, 0)
   const percentualGeral = totalMetas > 0 ? (totalAtual / totalMetas) * 100 : 0
 
+  const dadosStatus = useMemo(() => {
+    const completas = metas.filter(m => m.valorAtual >= m.valorMeta).length
+    const emAndamento = metas.filter(m => m.valorAtual < m.valorMeta && (!m.dataLimite || new Date(m.dataLimite) >= new Date())).length
+    const vencidas = metas.filter(m => m.dataLimite && new Date(m.dataLimite) < new Date() && m.valorAtual < m.valorMeta).length
+    
+    return [
+      { name: 'Completas', value: completas, color: '#10B981' },
+      { name: 'Em Andamento', value: emAndamento, color: '#00D9FF' },
+      { name: 'Vencidas', value: vencidas, color: '#EF4444' },
+    ]
+  }, [metas])
+
+  const dadosFaturamento = useMemo(() => {
+    return metas.map(meta => ({
+      name: meta.descricao.length > 15 ? meta.descricao.substring(0, 15) + '...' : meta.descricao,
+      meta: meta.valorMeta,
+      atual: meta.valorAtual,
+    }))
+  }, [metas])
+
+  const COLORS = ['#00D9FF', '#7C3AED', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
+
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Objetivos Financeiros</h1>
-            <p className="text-gray-400">Gerencie suas metas financeiras pessoais</p>
+            <p className="text-gray-400">Gerencie suas metas financeiras pessoais com acompanhamento detalhado</p>
           </div>
           <Button
             onClick={() => {
@@ -85,30 +108,92 @@ export default function ObjetivosFinanceirosPessoaisPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <StatCard
             title="Metas Ativas"
             value={metasAtivas.length}
             icon={Target}
+            className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20"
           />
           <StatCard
             title="Metas Completas"
             value={metasCompletas.length}
             icon={TrendingUp}
             valueColor="text-emerald-400"
+            className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
           />
           <StatCard
             title="Total em Metas"
             value={formatCurrency(totalMetas)}
             icon={Target}
+            className="bg-gradient-to-br from-accent-electric/10 to-accent-cyan/5 border-accent-electric/20"
           />
           <StatCard
             title="Progresso Geral"
             value={`${Math.round(percentualGeral)}%`}
             icon={TrendingUp}
             valueColor="text-accent-electric"
+            className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20"
           />
         </div>
+
+        {/* Gráficos */}
+        {metas.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-accent-electric" />
+                Distribuição por Status
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={dadosStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {dadosStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-accent-electric" />
+                Progresso das Metas
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={dadosFaturamento}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
+                  <Legend />
+                  <Bar dataKey="meta" fill="#7C3AED" name="Meta" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="atual" fill="#00D9FF" name="Atual" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -211,6 +296,9 @@ export default function ObjetivosFinanceirosPessoaisPage() {
           }}
           title={editingMeta ? 'Editar Objetivo' : 'Novo Objetivo'}
           size="lg"
+          variant="info"
+          icon={Target}
+          description={editingMeta ? 'Atualize os dados do seu objetivo financeiro' : 'Crie uma nova meta financeira para acompanhar seu progresso'}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
