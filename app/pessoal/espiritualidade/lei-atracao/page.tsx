@@ -108,7 +108,7 @@ export default function LeiAtracaoPage() {
         texto: afirmacao.texto.length > 20 ? afirmacao.texto.substring(0, 20) + '...' : afirmacao.texto,
         frequencia: afirmacao.frequencia,
       }))
-  }, [afirmacoes])
+  }, [afirmacoesAtivas])
 
   return (
     <MainLayout>

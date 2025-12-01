@@ -64,6 +64,12 @@ export default function CRMPage() {
     setIsViewModalOpen(true)
   }
 
+  const handleEdit = (cliente: Cliente) => {
+    setEditingCliente(cliente)
+    setIsModalOpen(true)
+    setIsViewModalOpen(false)
+  }
+
   const handleDelete = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este cliente?')) {
       deleteCliente(id)
