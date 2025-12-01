@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import Image from 'next/image'
 import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -1235,14 +1236,23 @@ export default function GerenciamentoRiscoPage() {
               />
               {printPreview && (
                 <div className="mt-2 relative">
-                  <img src={printPreview} alt="Preview" className="max-w-full h-auto rounded-lg border border-card-border/50" />
-                  <button
-                    type="button"
-                    onClick={() => setPrintPreview(null)}
-                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="relative w-full h-auto rounded-lg border border-card-border/50 overflow-hidden">
+                    <Image 
+                      src={printPreview} 
+                      alt="Preview" 
+                      width={800}
+                      height={600}
+                      className="max-w-full h-auto rounded-lg"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPrintPreview(null)}
+                      className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 z-10"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )}
               <input

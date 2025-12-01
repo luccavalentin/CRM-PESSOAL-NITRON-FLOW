@@ -98,7 +98,7 @@ export default function LeiAtracaoPage() {
       { name: 'Ativas', value: afirmacoesAtivas.length, color: '#10B981' },
       { name: 'Arquivadas', value: afirmacoesArquivadas.length, color: '#6B7280' },
     ]
-  }, [afirmacoes, afirmacoesAtivas.length, afirmacoesArquivadas.length])
+  }, [afirmacoesAtivas.length, afirmacoesArquivadas.length])
 
   const dadosFrequencia = useMemo(() => {
     return afirmacoesAtivas

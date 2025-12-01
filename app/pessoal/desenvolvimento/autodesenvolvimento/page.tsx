@@ -95,7 +95,7 @@ export default function AutodesenvolvimentoPage() {
       { name: 'Em Andamento', value: atividadesEmAndamento, color: '#00D9FF' },
       { name: 'Concluídas', value: atividadesConcluidas, color: '#10B981' },
     ]
-  }, [atividades, atividadesPlanejadas, atividadesEmAndamento, atividadesConcluidas])
+  }, [atividadesPlanejadas, atividadesEmAndamento, atividadesConcluidas])
 
   const dadosCategoria = useMemo(() => {
     const categoriasMap = new Map<string, number>()

@@ -87,7 +87,7 @@ export default function HabitosPage() {
       { name: 'Ativos', value: habitosAtivos, color: '#F59E0B' },
       { name: 'Superados', value: habitosSuperados, color: '#10B981' },
     ]
-  }, [habitos, habitosAtivos, habitosSuperados])
+  }, [habitosAtivos, habitosSuperados])
 
   const dadosTipo = useMemo(() => {
     const tipos = Array.from(new Set(habitos.map(h => h.tipo)))
