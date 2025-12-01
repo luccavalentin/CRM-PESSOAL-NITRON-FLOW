@@ -6,12 +6,21 @@ Este script importa automaticamente uma lista de lojas como leads no banco de da
 
 ### Pré-requisitos
 
-1. Certifique-se de que o arquivo `.env.local` está configurado com as credenciais do Supabase
-2. Certifique-se de que o schema do banco de dados foi executado (`database_schema_postgresql.sql`)
+1. Certifique-se de que o schema do banco de dados foi executado (`database_schema_postgresql.sql`)
 
 ### Como usar
 
-Execute o comando:
+**OPÇÃO 1: Via SQL Editor do Supabase (RECOMENDADO)**
+
+1. Acesse o Supabase Dashboard → SQL Editor
+2. Abra o arquivo `scripts/import-leads-piracicamirim.sql`
+3. Cole o conteúdo no SQL Editor
+4. Execute o script
+
+**OPÇÃO 2: Via Script TypeScript (requer .env.local)**
+
+1. Certifique-se de que o arquivo `.env.local` está configurado com as credenciais do Supabase
+2. Execute o comando:
 
 ```bash
 npm run import:leads
