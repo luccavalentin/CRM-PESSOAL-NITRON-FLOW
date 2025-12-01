@@ -29,7 +29,7 @@ import {
   ListTodo
 } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
-import { LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
 
@@ -578,7 +578,7 @@ export default function FluxoCaixaPage() {
                     formatter={(value: number) => formatCurrency(value)}
                   />
                   <Legend />
-                  <RechartsPieChart
+                  <Pie
                     data={dadosGraficoPizza}
                     cx="50%"
                     cy="50%"
@@ -591,7 +591,7 @@ export default function FluxoCaixaPage() {
                     {dadosGraficoPizza.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={coresPizza[index % coresPizza.length]} />
                     ))}
-                  </RechartsPieChart>
+                  </Pie>
                 </RechartsPieChart>
               </ResponsiveContainer>
             ) : (
