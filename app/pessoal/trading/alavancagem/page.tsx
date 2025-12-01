@@ -631,7 +631,7 @@ export default function AlavancagemPage() {
             </h2>
             <div className="space-y-3">
               {sessoes
-                .sort((a, b) => new Date(b.id).localeCompare(a.id))
+                .sort((a, b) => new Date(b.id).getTime() - new Date(a.id).getTime())
                 .map((sessao) => {
                   const progresso = calcularProgressoSessao(sessao)
                   return (
