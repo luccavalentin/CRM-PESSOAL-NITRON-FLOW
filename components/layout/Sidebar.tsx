@@ -317,6 +317,8 @@ const MenuItemComponent = memo(({ item, level, openItems, toggleItem, onNavigate
   return null
 })
 
+MenuItemComponent.displayName = 'MenuItemComponent'
+
 export default function Sidebar() {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set(['empresa', 'pessoal']))
   const [isMobileOpen, setIsMobileOpen] = useState(false)
