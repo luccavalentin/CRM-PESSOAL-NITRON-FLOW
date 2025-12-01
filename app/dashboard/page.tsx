@@ -378,10 +378,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold text-sm mb-1">
-                        {typeof ideia === 'string' ? ideia : ideia.titulo || ideia.nome || 'Ideia'}
+                        {typeof ideia === 'string' ? ideia : ideia.texto || 'Ideia'}
                       </p>
-                      {typeof ideia === 'object' && ideia.descricao && (
-                        <p className="text-xs text-gray-400 line-clamp-2">{ideia.descricao}</p>
+                      {typeof ideia === 'object' && ideia.categoria && (
+                        <p className="text-xs text-gray-400 line-clamp-2">{ideia.categoria}</p>
                       )}
                     </div>
                   </div>
