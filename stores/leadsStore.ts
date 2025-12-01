@@ -9,6 +9,7 @@ export interface Lead {
   estado: string
   cidade: string
   bairro: string
+  nicho?: string
   observacoes?: string
   status: 'Novo' | 'Contatado' | 'Qualificado' | 'Convertido' | 'Perdido'
   dataCriacao: string

@@ -3,33 +3,28 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
-import { Building2, Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react'
+import { Building2, Mail, Lock, User, Eye, EyeOff, UserPlus, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export default function LoginPage() {
+export default function CadastroPage() {
   const router = useRouter()
-  const { isAuthenticated, login, rememberMe, user } = useAuthStore()
+  const { isAuthenticated, register, rememberMe } = useAuthStore()
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Se já estiver autenticado e tiver rememberMe ativo, redireciona automaticamente
-    if (isAuthenticated && rememberMe) {
+    // Se já estiver autenticado, redireciona para o dashboard
+    if (isAuthenticated) {
       router.push('/dashboard')
       return
     }
-    // Se tiver dados salvos (mesmo sem rememberMe), pré-preenche o email
-    if (user) {
-      setEmail(user.email)
-      if (rememberMe) {
-        setRemember(true)
-      }
-    }
-  }, [isAuthenticated, rememberMe, user, router])
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +32,7 @@ export default function LoginPage() {
     setLoading(true)
 
     // Validação básica
-    if (!email || !password) {
+    if (!nome || !email || !password || !confirmPassword) {
       setError('Por favor, preencha todos os campos')
       setLoading(false)
       return
@@ -49,15 +44,29 @@ export default function LoginPage() {
       return
     }
 
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem')
+      setLoading(false)
+      return
+    }
+
+    // Validação de email básica
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um email válido')
+      setLoading(false)
+      return
+    }
+
     // Simula um pequeno delay
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    const success = login(email, password, remember)
+    const success = register(nome, email, password)
     
     if (success) {
       router.push('/dashboard')
     } else {
-      setError('Email ou senha inválidos')
+      setError('Erro ao criar conta. Este email já pode estar em uso.')
       setLoading(false)
     }
   }
@@ -73,12 +82,31 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-4xl font-extrabold text-white mb-2">NITRON FLOW</h1>
-          <p className="text-gray-400 text-lg">Sistema de Gestão Empresarial</p>
+          <p className="text-gray-400 text-lg">Criar Nova Conta</p>
         </div>
 
-        {/* Card de Login */}
+        {/* Card de Cadastro */}
         <div className="bg-card-bg/90 backdrop-blur-xl border border-card-border/50 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Nome */}
+            <div>
+              <label htmlFor="nome" className="block text-sm font-semibold text-gray-300 mb-2">
+                Nome Completo
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="nome"
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Seu nome completo"
+                  className="w-full pl-12 pr-4 py-3 bg-dark-black/50 border border-card-border/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent-electric/50 focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
@@ -125,18 +153,31 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Lembrar-me */}
-            <div className="flex items-center gap-3">
-              <input
-                id="remember"
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="w-5 h-5 rounded border-card-border bg-dark-black/50 text-accent-electric focus:ring-2 focus:ring-accent-electric/20 focus:ring-offset-0 focus:ring-offset-dark-black cursor-pointer"
-              />
-              <label htmlFor="remember" className="text-sm text-gray-300 cursor-pointer">
-                Lembrar-me (salvar dados para próximas vezes)
+            {/* Confirmar Senha */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-300 mb-2">
+                Confirmar Senha
               </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-12 pr-12 py-3 bg-dark-black/50 border border-card-border/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent-electric/50 focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             {/* Erro */}
@@ -146,7 +187,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Botão de Login */}
+            {/* Botão de Cadastro */}
             <button
               type="submit"
               disabled={loading}
@@ -155,24 +196,25 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Entrando...</span>
+                  <span>Criando conta...</span>
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
-                  <span>Entrar</span>
+                  <UserPlus className="w-5 h-5" />
+                  <span>Criar Conta</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Link para Cadastro */}
+          {/* Link para Login */}
           <div className="mt-6 pt-6 border-t border-card-border/30">
             <Link
-              href="/cadastro"
+              href="/login"
               className="flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-accent-electric transition-colors"
             >
-              <span>Não tem uma conta? Criar nova conta</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span>Já tem uma conta? Faça login</span>
             </Link>
           </div>
         </div>

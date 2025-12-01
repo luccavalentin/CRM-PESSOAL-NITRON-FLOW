@@ -56,6 +56,7 @@ export default function LeadsPage() {
       estado: formData.get('estado') as string,
       cidade: formData.get('cidade') as string,
       bairro: formData.get('bairro') as string,
+      nicho: formData.get('nicho') as string || undefined,
       observacoes: formData.get('observacoes') as string || undefined,
       status: (formData.get('status') as Lead['status']) || 'Novo',
       dataCriacao: editingLead?.dataCriacao || new Date().toISOString().split('T')[0],
@@ -138,7 +139,8 @@ export default function LeadsPage() {
       lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.telefone?.includes(searchTerm) ||
       lead.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.bairro.toLowerCase().includes(searchTerm.toLowerCase())
+      lead.bairro.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.nicho?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchEstado = filtroEstado === '' || lead.estado === filtroEstado
     const matchCidade = filtroCidade === '' || lead.cidade === filtroCidade
@@ -295,6 +297,12 @@ export default function LeadsPage() {
                           <MapPin className="w-4 h-4" />
                           <span>{getEstadoNome(lead.estado)} - {lead.cidade} - {lead.bairro}</span>
                         </div>
+                        {lead.nicho && (
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <span className="text-xs font-semibold text-accent-electric">Nicho:</span>
+                            <span>{lead.nicho}</span>
+                          </div>
+                        )}
                         <div className="text-gray-500 text-xs">
                           Criado em: {new Date(lead.dataCriacao).toLocaleDateString('pt-BR')}
                         </div>
@@ -459,6 +467,19 @@ export default function LeadsPage() {
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Nicho
+              </label>
+              <input
+                type="text"
+                name="nicho"
+                defaultValue={editingLead?.nicho}
+                placeholder="Ex: Tecnologia, Alimentação, Varejo..."
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
