@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ItemCompra } from '@/types'
-import { saveItemCompra, deleteItemCompra } from '@/utils/supabaseSync'
+import { saveItemCompra, deleteItemCompra, loadItensCompra } from '@/utils/supabaseSync'
 
 interface ListaComprasStore {
   itens: ItemCompra[]
