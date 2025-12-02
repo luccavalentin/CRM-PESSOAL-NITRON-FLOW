@@ -58,7 +58,8 @@ export default function LoginPage() {
     if (success) {
       router.push('/dashboard')
     } else {
-      setError('Email ou senha inválidos')
+      // Mensagem de erro mais específica
+      setError('Email ou senha inválidos. Verifique se o email foi confirmado ou se as credenciais estão corretas.')
       setLoading(false)
     }
   }

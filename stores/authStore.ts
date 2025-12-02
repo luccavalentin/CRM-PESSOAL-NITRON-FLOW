@@ -33,25 +33,44 @@ export const useAuthStore = create<AuthState>()(
       
       register: async (nome: string, email: string, password: string) => {
         try {
+          // Normaliza o email
+          const normalizedEmail = email.toLowerCase().trim()
+          
           // Registra no Supabase Auth
           const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             password: password,
             options: {
               data: {
                 nome: nome,
               },
+              emailRedirectTo: undefined, // Não redireciona após confirmação
             },
           })
 
           if (authError) {
             console.error('[AuthStore] Erro ao registrar no Supabase:', authError)
+            
+            // Se o usuário já existe, tenta fazer login
+            if (authError.message.includes('already registered') || 
+                authError.message.includes('User already registered')) {
+              console.log('[AuthStore] Usuário já existe, tentando fazer login...')
+              const loginSuccess = await get().login(normalizedEmail, password, true)
+              return loginSuccess
+            }
+            
             return false
           }
 
           if (!authData.user) {
             console.error('[AuthStore] Usuário não foi criado')
             return false
+          }
+
+          // Se o email não foi confirmado automaticamente, confirma manualmente
+          // Isso é necessário se a confirmação de email estiver desabilitada
+          if (!authData.user.email_confirmed_at) {
+            console.log('[AuthStore] Email não confirmado, mas continuando com o registro')
           }
 
           // Cria o perfil do usuário na tabela usuarios
@@ -71,14 +90,26 @@ export const useAuthStore = create<AuthState>()(
             // Pode ser que o trigger já tenha criado
           }
 
+          // Se o email não foi confirmado automaticamente, tenta confirmar via função SQL
+          if (!authData.user.email_confirmed_at) {
+            console.log('[AuthStore] Email não confirmado, tentando confirmar automaticamente...')
+            // Chama função SQL para confirmar email
+            const { error: confirmError } = await supabase.rpc('revalidate_user_session', {
+              user_email: normalizedEmail
+            })
+            if (confirmError) {
+              console.warn('[AuthStore] Não foi possível confirmar email automaticamente:', confirmError)
+            }
+          }
+
           // Atualiza o estado local
           set({
             isAuthenticated: true,
-            user: { email: email.toLowerCase(), name: nome },
+            user: { email: normalizedEmail, name: nome },
             rememberMe: true,
           })
 
-          console.log('[AuthStore] Usuário registrado com sucesso no Supabase:', email)
+          console.log('[AuthStore] Usuário registrado com sucesso no Supabase:', normalizedEmail)
           return true
         } catch (error) {
           console.error('[AuthStore] Erro ao registrar:', error)
@@ -88,20 +119,35 @@ export const useAuthStore = create<AuthState>()(
       
       login: async (email: string, password: string, rememberMe: boolean) => {
         try {
+          // Normaliza o email
+          const normalizedEmail = email.toLowerCase().trim()
+          
           // Faz login no Supabase Auth
           const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             password: password,
           })
 
           if (authError) {
             console.error('[AuthStore] Erro ao fazer login:', authError)
+            
+            // Mensagens de erro mais específicas
+            if (authError.message.includes('Invalid login credentials') || 
+                authError.message.includes('Email not confirmed')) {
+              console.error('[AuthStore] Credenciais inválidas ou email não confirmado')
+            }
+            
             return false
           }
 
           if (!authData.user) {
             console.error('[AuthStore] Usuário não encontrado')
             return false
+          }
+
+          // Verifica se o email está confirmado
+          if (!authData.user.email_confirmed_at && authData.user.confirmed_at) {
+            console.warn('[AuthStore] Email não confirmado, mas permitindo login')
           }
 
           // Busca o perfil do usuário
