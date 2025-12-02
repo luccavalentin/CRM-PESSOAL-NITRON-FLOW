@@ -64,3 +64,4 @@ Vá em **Settings > Environment Variables** e adicione:
 - Autenticação gerenciada pelo Supabase Auth
 - Senhas são hasheadas automaticamente pelo Supabase
 
+

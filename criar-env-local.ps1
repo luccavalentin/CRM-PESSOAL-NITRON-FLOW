@@ -12,3 +12,4 @@ Write-Host "✅ Arquivo .env.local criado com sucesso!" -ForegroundColor Green
 Write-Host ""
 Write-Host "⚠️ IMPORTANTE: Reinicie o servidor (npm run dev)" -ForegroundColor Yellow
 
+

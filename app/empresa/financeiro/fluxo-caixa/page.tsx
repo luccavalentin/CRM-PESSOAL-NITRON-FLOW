@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
+import CategoryInput from '@/components/ui/CategoryInput'
 import { useFinancasEmpresaStore } from '@/stores/financasEmpresaStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { TransacaoFinanceira } from '@/types'
@@ -49,6 +50,7 @@ export default function FluxoCaixaPage() {
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
   const [saldoInicial, setSaldoInicial] = useState(0)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [categoriaModal, setCategoriaModal] = useState('')
   
   const addTarefa = useTarefasStore((state) => state.addTarefa)
   const tarefas = useTarefasStore((state) => state.tarefas)
@@ -217,7 +219,7 @@ export default function FluxoCaixaPage() {
       id: editingTransacao?.id || uuidv4(),
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
-      categoria: (formData.get('categoria') as string) || 'Outros',
+      categoria: categoriaModal || (formData.get('categoria') as string) || 'Outros',
       data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
       tipo: tipoTransacao,
       recorrente: isRecorrente,
@@ -228,7 +230,27 @@ export default function FluxoCaixaPage() {
     }
 
     if (editingTransacao) {
-      updateTransacao(editingTransacao.id, novaTransacao)
+      // Se for recorrente, atualizar todas as transações relacionadas
+      if (editingTransacao.recorrente && editingTransacao.transacaoOriginalId) {
+        const transacoesRelacionadas = transacoes.filter(
+          t => t.transacaoOriginalId === editingTransacao.transacaoOriginalId || 
+               (t.id === editingTransacao.transacaoOriginalId && t.recorrente)
+        )
+        
+        // Atualizar todas as transações relacionadas
+        transacoesRelacionadas.forEach(t => {
+          updateTransacao(t.id, {
+            descricao: novaTransacao.descricao,
+            valor: novaTransacao.valor,
+            categoria: novaTransacao.categoria,
+            tipoRecorrencia: novaTransacao.tipoRecorrencia,
+            dataFim: novaTransacao.dataFim,
+            quantidadeRecorrencias: novaTransacao.quantidadeRecorrencias,
+          })
+        })
+      } else {
+        updateTransacao(editingTransacao.id, novaTransacao)
+      }
     } else {
       addTransacao(novaTransacao)
       
@@ -261,6 +283,7 @@ export default function FluxoCaixaPage() {
 
     setIsModalOpen(false)
     setEditingTransacao(null)
+    setCategoriaModal('')
   }
 
   const calcularProximaData = (dataInicial: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia'], multiplicador: number): Date => {
@@ -307,7 +330,12 @@ export default function FluxoCaixaPage() {
   const handleEdit = (transacao: TransacaoFinanceira) => {
     setEditingTransacao(transacao)
     setTipoTransacao(transacao.tipo)
+    setCategoriaModal(transacao.categoria)
     setIsModalOpen(true)
+  }
+
+  const handleAddCategory = (newCategory: string) => {
+    setCategoriaModal(newCategory)
   }
 
   const handleDelete = (id: string) => {
@@ -404,12 +432,13 @@ export default function FluxoCaixaPage() {
               onClick={() => {
                 setTipoTransacao('saida')
                 setEditingTransacao(null)
+                setCategoriaModal('Contas a Pagar')
                 setIsModalOpen(true)
               }}
               className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Saída
+              Conta a Pagar
             </Button>
           </div>
         </div>
@@ -867,8 +896,9 @@ export default function FluxoCaixaPage() {
         onClose={() => {
           setIsModalOpen(false)
           setEditingTransacao(null)
+          setCategoriaModal('')
         }}
-        title={editingTransacao ? 'Editar Transação' : tipoTransacao === 'entrada' ? 'Nova Entrada' : 'Nova Saída'}
+        title={editingTransacao ? 'Editar Transação' : tipoTransacao === 'entrada' ? 'Nova Entrada' : 'Conta a Pagar'}
         description={editingTransacao ? 'Atualize os dados da transação' : tipoTransacao === 'entrada' ? 'Registre uma nova entrada financeira' : 'Registre uma nova saída financeira'}
         size="md"
         variant={tipoTransacao === 'entrada' ? 'success' : 'error'}
@@ -917,13 +947,30 @@ export default function FluxoCaixaPage() {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               {tipoTransacao === 'entrada' ? 'Cliente' : 'Categoria'}
             </label>
-            <input
-              type="text"
-              name="categoria"
-              defaultValue={editingTransacao?.categoria}
-              placeholder={tipoTransacao === 'entrada' ? 'Nome do cliente' : 'Categoria da despesa'}
-              className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
-            />
+            {tipoTransacao === 'saida' ? (
+              <>
+                <CategoryInput
+                  value={categoriaModal || editingTransacao?.categoria || ''}
+                  onChange={(value) => setCategoriaModal(value)}
+                  categories={categorias}
+                  onAddCategory={handleAddCategory}
+                  placeholder="Buscar ou criar categoria..."
+                />
+                <input
+                  type="hidden"
+                  name="categoria"
+                  value={categoriaModal || editingTransacao?.categoria || ''}
+                />
+              </>
+            ) : (
+              <input
+                type="text"
+                name="categoria"
+                defaultValue={editingTransacao?.categoria}
+                placeholder="Nome do cliente"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            )}
           </div>
           
           {/* Recorrência */}
@@ -994,6 +1041,7 @@ export default function FluxoCaixaPage() {
               onClick={() => {
                 setIsModalOpen(false)
                 setEditingTransacao(null)
+                setCategoriaModal('')
               }}
             >
               Cancelar

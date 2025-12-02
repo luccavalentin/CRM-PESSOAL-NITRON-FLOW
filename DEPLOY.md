@@ -144,3 +144,4 @@ O schema SQL inclui todas as tabelas necessárias:
 Após o deploy, seu sistema estará disponível em uma URL da Vercel!
 
 
+

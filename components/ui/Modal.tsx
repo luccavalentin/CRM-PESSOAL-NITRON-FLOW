@@ -43,39 +43,44 @@ export default function Modal({
 
   const variantStyles = {
     default: {
-      headerBg: 'bg-gradient-to-r from-card-bg to-dark-black',
-      borderColor: 'border-accent-electric/30',
-      iconBg: 'bg-accent-electric/20',
+      headerBg: 'bg-gradient-to-r from-card-bg via-accent-electric/10 to-dark-black',
+      borderColor: 'border-accent-electric/40',
+      iconBg: 'bg-gradient-to-br from-accent-electric/30 to-accent-cyan/20',
       iconColor: 'text-accent-electric',
-      accentBorder: 'border-l-4 border-accent-electric',
+      accentBorder: 'border-l-4 border-accent-electric shadow-lg shadow-accent-electric/20',
+      glow: 'shadow-[0_0_20px_rgba(0,217,255,0.1)]',
     },
     success: {
-      headerBg: 'bg-gradient-to-r from-emerald-900/30 to-emerald-800/20',
-      borderColor: 'border-emerald-500/30',
-      iconBg: 'bg-emerald-500/20',
-      iconColor: 'text-emerald-400',
-      accentBorder: 'border-l-4 border-emerald-500',
+      headerBg: 'bg-gradient-to-r from-emerald-900/40 via-emerald-800/30 to-emerald-900/20',
+      borderColor: 'border-emerald-500/50',
+      iconBg: 'bg-gradient-to-br from-emerald-500/30 to-emerald-400/20',
+      iconColor: 'text-emerald-300',
+      accentBorder: 'border-l-4 border-emerald-500 shadow-lg shadow-emerald-500/20',
+      glow: 'shadow-[0_0_20px_rgba(16,185,129,0.15)]',
     },
     warning: {
-      headerBg: 'bg-gradient-to-r from-yellow-900/30 to-yellow-800/20',
-      borderColor: 'border-yellow-500/30',
-      iconBg: 'bg-yellow-500/20',
-      iconColor: 'text-yellow-400',
-      accentBorder: 'border-l-4 border-yellow-500',
+      headerBg: 'bg-gradient-to-r from-yellow-900/40 via-yellow-800/30 to-yellow-900/20',
+      borderColor: 'border-yellow-500/50',
+      iconBg: 'bg-gradient-to-br from-yellow-500/30 to-yellow-400/20',
+      iconColor: 'text-yellow-300',
+      accentBorder: 'border-l-4 border-yellow-500 shadow-lg shadow-yellow-500/20',
+      glow: 'shadow-[0_0_20px_rgba(234,179,8,0.15)]',
     },
     error: {
-      headerBg: 'bg-gradient-to-r from-red-900/30 to-red-800/20',
-      borderColor: 'border-red-500/30',
-      iconBg: 'bg-red-500/20',
-      iconColor: 'text-red-400',
-      accentBorder: 'border-l-4 border-red-500',
+      headerBg: 'bg-gradient-to-r from-red-900/40 via-red-800/30 to-red-900/20',
+      borderColor: 'border-red-500/50',
+      iconBg: 'bg-gradient-to-br from-red-500/30 to-red-400/20',
+      iconColor: 'text-red-300',
+      accentBorder: 'border-l-4 border-red-500 shadow-lg shadow-red-500/20',
+      glow: 'shadow-[0_0_20px_rgba(239,68,68,0.15)]',
     },
     info: {
-      headerBg: 'bg-gradient-to-r from-blue-900/30 to-blue-800/20',
-      borderColor: 'border-blue-500/30',
-      iconBg: 'bg-blue-500/20',
-      iconColor: 'text-blue-400',
-      accentBorder: 'border-l-4 border-blue-500',
+      headerBg: 'bg-gradient-to-r from-blue-900/40 via-blue-800/30 to-blue-900/20',
+      borderColor: 'border-blue-500/50',
+      iconBg: 'bg-gradient-to-br from-blue-500/30 to-blue-400/20',
+      iconColor: 'text-blue-300',
+      accentBorder: 'border-l-4 border-blue-500 shadow-lg shadow-blue-500/20',
+      glow: 'shadow-[0_0_20px_rgba(59,130,246,0.15)]',
     },
   }
 
@@ -140,19 +145,25 @@ export default function Modal({
                 damping: 30,
                 duration: 0.3
               }}
-              className={`w-full ${sizeClasses[size]} bg-gradient-to-br from-card-bg via-card-bg to-dark-black border-2 ${styles.borderColor} rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto my-auto ${styles.accentBorder} ${className}`}
+              className={`w-full ${sizeClasses[size]} bg-gradient-to-br from-card-bg via-card-bg to-dark-black border-2 ${styles.borderColor} rounded-2xl shadow-2xl shadow-black/50 pointer-events-auto my-auto ${styles.accentBorder} ${styles.glow} ${className}`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header com gradiente e ícone */}
               {(title || SelectedIcon) && (
                 <div className={`${styles.headerBg} p-6 border-b ${styles.borderColor} rounded-t-xl relative overflow-hidden`}>
                   {/* Efeito de brilho sutil no header */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                  {/* Efeito de partículas sutil */}
+                  <div className="absolute inset-0 opacity-20">
+                    <div className="absolute top-0 left-1/4 w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0s' }} />
+                    <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+                    <div className="absolute bottom-0 left-1/2 w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+                  </div>
                   
                   <div className="flex items-start gap-4 relative z-10">
                     {SelectedIcon && (
-                      <div className={`${styles.iconBg} p-3 rounded-xl ${styles.iconColor} flex-shrink-0`}>
-                        <SelectedIcon className="w-6 h-6" />
+                      <div className={`${styles.iconBg} p-3 rounded-xl ${styles.iconColor} flex-shrink-0 shadow-lg backdrop-blur-sm border border-white/10`}>
+                        <SelectedIcon className="w-6 h-6 drop-shadow-lg" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">

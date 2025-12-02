@@ -64,3 +64,4 @@ Após executar, verifique se todas as tabelas foram criadas:
 - Ajuste as políticas conforme necessário no painel do Supabase
 
 
+

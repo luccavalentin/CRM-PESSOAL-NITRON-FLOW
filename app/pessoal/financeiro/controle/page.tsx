@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
+import CategoryInput from '@/components/ui/CategoryInput'
 import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
@@ -29,6 +30,8 @@ export default function ControleFinancasPage() {
   const [ordenacao, setOrdenacao] = useState<'data' | 'valor' | 'categoria'>('data')
   const [ordem, setOrdem] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [periodoAnalise, setPeriodoAnalise] = useState<'mensal' | 'anual'>('mensal')
+  const [categoriaModal, setCategoriaModal] = useState('')
 
   useEffect(() => {
     const checkbox = document.querySelector('input[name="recorrente"]') as HTMLInputElement
@@ -118,9 +121,25 @@ export default function ControleFinancasPage() {
   }, [transacoes])
 
   const dadosCategorias = useMemo(() => {
+    const hoje = new Date()
+    let transacoesFiltradas = [...transacoes]
+    
+    // Filtrar por período
+    if (periodoAnalise === 'mensal') {
+      transacoesFiltradas = transacoes.filter(t => {
+        const data = new Date(t.data)
+        return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear()
+      })
+    } else if (periodoAnalise === 'anual') {
+      transacoesFiltradas = transacoes.filter(t => {
+        const data = new Date(t.data)
+        return data.getFullYear() === hoje.getFullYear()
+      })
+    }
+    
     const categoriasMap = new Map<string, { entradas: number, saidas: number }>()
     
-    transacoes.forEach(t => {
+    transacoesFiltradas.forEach(t => {
       const atual = categoriasMap.get(t.categoria) || { entradas: 0, saidas: 0 }
       if (t.tipo === 'entrada') {
         atual.entradas += t.valor
@@ -139,7 +158,7 @@ export default function ControleFinancasPage() {
       }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 8)
-  }, [transacoes])
+  }, [transacoes, periodoAnalise])
 
   const dadosCategoriasPizza = useMemo(() => {
     const categoriasMap = new Map<string, number>()
@@ -160,6 +179,11 @@ export default function ControleFinancasPage() {
   const categoriasUnicas = useMemo(() => {
     return Array.from(new Set(transacoes.map(t => t.categoria))).sort()
   }, [transacoes])
+
+  const handleAddCategory = (newCategory: string) => {
+    // Categoria será adicionada automaticamente quando a transação for salva
+    setCategoriaModal(newCategory)
+  }
 
   // Transações filtradas e ordenadas
   const transacoesFiltradas = useMemo(() => {
@@ -259,7 +283,7 @@ export default function ControleFinancasPage() {
       id: editingTransacao?.id || uuidv4(),
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
-      categoria: (formData.get('categoria') as string) || 'Outros',
+      categoria: categoriaModal || (formData.get('categoria') as string) || 'Outros',
       data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
       tipo: tipoTransacao,
       recorrente: isRecorrente,
@@ -270,7 +294,27 @@ export default function ControleFinancasPage() {
     }
 
     if (editingTransacao) {
-      updateTransacao(editingTransacao.id, novaTransacao)
+      // Se for recorrente, atualizar todas as transações relacionadas
+      if (editingTransacao.recorrente && editingTransacao.transacaoOriginalId) {
+        const transacoesRelacionadas = transacoes.filter(
+          t => t.transacaoOriginalId === editingTransacao.transacaoOriginalId || 
+               (t.id === editingTransacao.transacaoOriginalId && t.recorrente)
+        )
+        
+        // Atualizar todas as transações relacionadas
+        transacoesRelacionadas.forEach(t => {
+          updateTransacao(t.id, {
+            descricao: novaTransacao.descricao,
+            valor: novaTransacao.valor,
+            categoria: novaTransacao.categoria,
+            tipoRecorrencia: novaTransacao.tipoRecorrencia,
+            dataFim: novaTransacao.dataFim,
+            quantidadeRecorrencias: novaTransacao.quantidadeRecorrencias,
+          })
+        })
+      } else {
+        updateTransacao(editingTransacao.id, novaTransacao)
+      }
     } else {
       addTransacao(novaTransacao)
       
@@ -302,11 +346,13 @@ export default function ControleFinancasPage() {
     
     setIsModalOpen(false)
     setEditingTransacao(null)
+    setCategoriaModal('')
   }
 
   const handleEdit = (transacao: TransacaoFinanceira) => {
     setEditingTransacao(transacao)
     setTipoTransacao(transacao.tipo)
+    setCategoriaModal(transacao.categoria)
     setIsModalOpen(true)
   }
 
@@ -401,12 +447,13 @@ export default function ControleFinancasPage() {
               onClick={() => {
                 setTipoTransacao('saida')
                 setEditingTransacao(null)
+                setCategoriaModal('Contas a Pagar')
                 setIsModalOpen(true)
               }}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-red-600/50 hover:shadow-xl hover:shadow-red-600/70 hover:scale-105 transition-all duration-200 border-2 border-red-500/50"
             >
               <Plus className="w-5 h-5" />
-              Nova Saída
+              Conta a Pagar
             </Button>
           </div>
         </div>
@@ -525,9 +572,33 @@ export default function ControleFinancasPage() {
         {/* Análise por Categoria */}
         {dadosCategorias.length > 0 && (
           <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-accent-electric" />
-              <h3 className="text-lg font-bold text-white">Análise por Categoria</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-accent-electric" />
+                <h3 className="text-lg font-bold text-white">Análise por Categoria</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPeriodoAnalise('mensal')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodoAnalise === 'mensal'
+                      ? 'bg-accent-electric/20 text-accent-electric border border-accent-electric/30'
+                      : 'bg-dark-black/50 text-gray-400 border border-card-border/50 hover:border-accent-electric/50'
+                  }`}
+                >
+                  Mensal
+                </button>
+                <button
+                  onClick={() => setPeriodoAnalise('anual')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    periodoAnalise === 'anual'
+                      ? 'bg-accent-electric/20 text-accent-electric border border-accent-electric/30'
+                      : 'bg-dark-black/50 text-gray-400 border border-card-border/50 hover:border-accent-electric/50'
+                  }`}
+                >
+                  Anual
+                </button>
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dadosCategorias}>
@@ -756,8 +827,9 @@ export default function ControleFinancasPage() {
           onClose={() => {
             setIsModalOpen(false)
             setEditingTransacao(null)
+            setCategoriaModal('')
           }}
-          title={editingTransacao ? 'Editar Transação' : tipoTransacao === 'entrada' ? 'Nova Entrada' : 'Nova Saída'}
+          title={editingTransacao ? 'Editar Transação' : tipoTransacao === 'entrada' ? 'Nova Entrada' : 'Conta a Pagar'}
           description={editingTransacao ? 'Atualize os dados da transação' : tipoTransacao === 'entrada' ? 'Registre uma nova entrada financeira' : 'Registre uma nova saída financeira'}
           size="lg"
           variant={tipoTransacao === 'entrada' ? 'success' : 'error'}
@@ -793,12 +865,17 @@ export default function ControleFinancasPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Categoria
                 </label>
+                <CategoryInput
+                  value={categoriaModal || editingTransacao?.categoria || ''}
+                  onChange={(value) => setCategoriaModal(value)}
+                  categories={categoriasUnicas}
+                  onAddCategory={handleAddCategory}
+                  placeholder="Buscar ou criar categoria..."
+                />
                 <input
-                  type="text"
+                  type="hidden"
                   name="categoria"
-                  defaultValue={editingTransacao?.categoria}
-                  placeholder="Ex: Salário, Alimentação..."
-                  className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+                  value={categoriaModal || editingTransacao?.categoria || ''}
                 />
               </div>
             </div>

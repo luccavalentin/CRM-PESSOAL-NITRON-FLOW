@@ -74,3 +74,4 @@ export const searchForexAssets = (query: string): string[] => {
 }
 
 
+

@@ -46,3 +46,4 @@ Após configurar as variáveis:
 - ✅ O arquivo `vercel.json` foi corrigido e não precisa mais de secrets
 
 
+

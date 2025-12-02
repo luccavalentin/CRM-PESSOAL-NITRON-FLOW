@@ -149,13 +149,13 @@ export default function NegociacoesPage() {
 
     setRenegociacoes([...renegociacoes, novaRenegociacao])
 
-    // Adicionar parcelas como saídas no controle financeiro
+    // Adicionar parcelas como CONTAS A PAGAR no controle financeiro
     parcelas.forEach(parcela => {
       addTransacao({
         id: uuidv4(),
         descricao: `Parcela ${parcela.numero}/${numeroParcelas} - ${dividaParaRenegociar.descricao}`,
         valor: parcela.valor,
-        categoria: 'Renegociação',
+        categoria: 'Contas a Pagar',
         data: parcela.dataVencimento,
         tipo: 'saida',
       })
@@ -163,7 +163,7 @@ export default function NegociacoesPage() {
 
     setIsRenegociacaoModalOpen(false)
     setDividaParaRenegociar(null)
-    alert('Renegociação criada com sucesso! As parcelas foram adicionadas ao controle financeiro.')
+    alert('Renegociação criada com sucesso! As parcelas foram adicionadas automaticamente como CONTAS A PAGAR no controle financeiro.')
   }
 
   const handleDeleteDivida = (id: string) => {

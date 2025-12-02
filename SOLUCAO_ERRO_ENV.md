@@ -51,3 +51,4 @@ O arquivo `.env.local` deve estar na **raiz do projeto**, na mesma pasta que:
 3. Verifique se copiou a KEY completa (é muito longa)
 4. Reinicie o servidor após criar o arquivo
 
+

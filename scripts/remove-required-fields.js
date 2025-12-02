@@ -64,3 +64,4 @@ files.forEach(file => {
 console.log(`\n✓ ${count} arquivos atualizados!`);
 
 
+

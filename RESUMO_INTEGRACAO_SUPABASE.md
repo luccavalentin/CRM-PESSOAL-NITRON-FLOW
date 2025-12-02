@@ -74,3 +74,4 @@ Adicione as mesmas variáveis em **Settings > Environment Variables**
 
 O sistema está completamente integrado com Supabase. Basta executar o schema SQL e configurar as variáveis de ambiente!
 
+
