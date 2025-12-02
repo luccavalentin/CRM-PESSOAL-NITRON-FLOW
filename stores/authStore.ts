@@ -131,10 +131,50 @@ export const useAuthStore = create<AuthState>()(
           if (authError) {
             console.error('[AuthStore] Erro ao fazer login:', authError)
             
-            // Mensagens de erro mais específicas
-            if (authError.message.includes('Invalid login credentials') || 
-                authError.message.includes('Email not confirmed')) {
-              console.error('[AuthStore] Credenciais inválidas ou email não confirmado')
+            // Se o erro for de email não confirmado, tenta confirmar automaticamente
+            if (authError.message.includes('Email not confirmed') || 
+                authError.message.includes('email not confirmed')) {
+              console.log('[AuthStore] Email não confirmado, tentando confirmar automaticamente...')
+              
+              // Tenta confirmar o email via função SQL
+              const { error: confirmError } = await supabase.rpc('revalidate_user_session', {
+                user_email: normalizedEmail
+              })
+              
+              if (!confirmError) {
+                // Se conseguiu confirmar, tenta fazer login novamente
+                console.log('[AuthStore] Email confirmado, tentando login novamente...')
+                const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
+                  email: normalizedEmail,
+                  password: password,
+                })
+                
+                if (!retryAuthError && retryAuthData?.user) {
+                  // Login bem-sucedido após confirmação
+                  const { data: profile } = await supabase
+                    .from('usuarios')
+                    .select('nome, email')
+                    .eq('id', retryAuthData.user.id)
+                    .single()
+                  
+                  await supabase
+                    .from('usuarios')
+                    .update({ ultimo_acesso: new Date().toISOString() })
+                    .eq('id', retryAuthData.user.id)
+                  
+                  set({
+                    isAuthenticated: true,
+                    user: { 
+                      email: retryAuthData.user.email || normalizedEmail, 
+                      name: profile?.nome || retryAuthData.user.user_metadata?.nome 
+                    },
+                    rememberMe,
+                  })
+                  
+                  console.log('[AuthStore] Login realizado com sucesso após confirmação automática:', normalizedEmail)
+                  return true
+                }
+              }
             }
             
             return false
@@ -145,9 +185,17 @@ export const useAuthStore = create<AuthState>()(
             return false
           }
 
-          // Verifica se o email está confirmado
-          if (!authData.user.email_confirmed_at && authData.user.confirmed_at) {
-            console.warn('[AuthStore] Email não confirmado, mas permitindo login')
+          // Se o email não estiver confirmado, tenta confirmar automaticamente
+          if (!authData.user.email_confirmed_at) {
+            console.log('[AuthStore] Email não confirmado, confirmando automaticamente...')
+            const { error: confirmError } = await supabase.rpc('revalidate_user_session', {
+              user_email: normalizedEmail
+            })
+            if (confirmError) {
+              console.warn('[AuthStore] Não foi possível confirmar email:', confirmError)
+            } else {
+              console.log('[AuthStore] Email confirmado com sucesso')
+            }
           }
 
           // Busca o perfil do usuário

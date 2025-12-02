@@ -7,7 +7,9 @@ import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
 import CategoryInput from '@/components/ui/CategoryInput'
 import { useFinancasEmpresaStore } from '@/stores/financasEmpresaStore'
+import { useCategoriasStore } from '@/stores/categoriasStore'
 import { formatCurrency } from '@/utils/formatCurrency'
+import { formatDateForInput } from '@/utils/formatDate'
 import { TransacaoFinanceira } from '@/types'
 import { 
   Plus, 
@@ -166,10 +168,15 @@ export default function FluxoCaixaPage() {
   const saldoAtual = saldoInicial + fluxoCaixa
 
   // Categorias únicas para filtro
+  const { addCategoria, getAllCategorias } = useCategoriasStore()
+  const categoriasSalvas = useCategoriasStore((state) => state.getAllCategorias())
+  
   const categorias = useMemo(() => {
-    const cats = new Set(transacoes.map(t => t.categoria))
-    return Array.from(cats).sort()
-  }, [transacoes])
+    // Combina categorias salvas com categorias das transações
+    const categoriasTransacoes = Array.from(new Set(transacoes.map(t => t.categoria).filter(c => c && c.trim() !== '')))
+    const todasCategorias = Array.from(new Set([...categoriasSalvas, ...categoriasTransacoes]))
+    return todasCategorias.sort()
+  }, [transacoes, categoriasSalvas])
 
   // Dados para gráficos
   const dadosGraficoLinha = useMemo(() => {
@@ -231,7 +238,7 @@ export default function FluxoCaixaPage() {
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
       categoria: categoriaFinal,
-      data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+      data: (formData.get('data') as string) || formatDateForInput(),
       tipo: tipoTransacao,
       recorrente: isRecorrente,
       tipoRecorrencia: isRecorrente ? tipoRecorrencia : undefined,
@@ -349,7 +356,13 @@ export default function FluxoCaixaPage() {
   }
 
   const handleAddCategory = (newCategory: string) => {
-    setCategoriaModal(newCategory)
+    const trimmed = newCategory.trim()
+    if (trimmed) {
+      // Salva a nova categoria no store
+      addCategoria(trimmed, 'saida') // Para empresa, categorias são sempre saídas
+      // Atualiza o estado local
+      setCategoriaModal(trimmed)
+    }
   }
 
   const handleDelete = (id: string) => {
@@ -404,7 +417,7 @@ export default function FluxoCaixaPage() {
       descricao: formData.get('descricao') as string || undefined,
       prioridade: (formData.get('prioridade') as Prioridade) || 'Média',
       categoria: 'Empresarial' as CategoriaTarefa,
-      data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+      data: (formData.get('data') as string) || formatDateForInput(),
       status: 'Pendente' as StatusTarefa,
       tarefaRapida: formData.get('tarefaRapida') === 'on',
       recorrente: false,
@@ -1065,7 +1078,7 @@ export default function FluxoCaixaPage() {
               <input
                 type="date"
                 name="data"
-                defaultValue={editingTransacao?.data || new Date().toISOString().split('T')[0]}
+                defaultValue={editingTransacao?.data ? formatDateForInput(editingTransacao.data) : formatDateForInput()}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>
@@ -1239,7 +1252,7 @@ export default function FluxoCaixaPage() {
               <input
                 type="date"
                 name="data"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={formatDateForInput()}
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>

@@ -8,6 +8,7 @@ import StatCard from '@/components/ui/StatCard'
 import CategoryInput from '@/components/ui/CategoryInput'
 import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useCategoriasStore } from '@/stores/categoriasStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { formatDateForInput } from '@/utils/formatDate'
 import { TransacaoFinanceira } from '@/types'
@@ -182,10 +183,17 @@ export default function ControleFinancasPage() {
       .slice(0, 6)
   }, [transacoes])
 
+  const { addCategoria } = useCategoriasStore()
+  const categoriasSalvas = useCategoriasStore((state) => state.getAllCategorias())
+  
   const categoriasUnicas = useMemo(() => {
-    const categorias = Array.from(new Set(transacoes.map(t => t.categoria).filter(c => c && c.trim() !== '')))
-    return categorias.sort()
-  }, [transacoes])
+    // Combina categorias salvas com categorias das transações
+    const categoriasTransacoes = Array.from(
+      new Set(transacoes.map(t => t.categoria).filter(c => c && c.trim() !== ''))
+    )
+    const todasCategorias = Array.from(new Set([...categoriasSalvas, ...categoriasTransacoes]))
+    return todasCategorias.sort()
+  }, [transacoes, categoriasSalvas])
 
   const handleAddCategory = (newCategory: string) => {
     // Atualizar o estado da categoria no modal
@@ -1014,7 +1022,12 @@ export default function ControleFinancasPage() {
                     categories={categoriasUnicas}
                     onAddCategory={(newCat) => {
                       const trimmed = newCat.trim()
-                      setCategoriaModal(trimmed)
+                      if (trimmed) {
+                        // Salva a nova categoria no store
+                        addCategoria(trimmed, tipoTransacao)
+                        // Atualiza o estado local
+                        setCategoriaModal(trimmed)
+                      }
                     }}
                     placeholder="Buscar ou criar categoria..."
                   />
