@@ -1016,7 +1016,11 @@ export default function ControleFinancasPage() {
                       setCategoriaModal(trimmed)
                     }}
                     placeholder="Buscar ou criar categoria..."
+                  />
+                  <input
+                    type="hidden"
                     name="categoria"
+                    value={categoriaModal || editingTransacao?.categoria || ''}
                   />
                 </div>
               </div>
