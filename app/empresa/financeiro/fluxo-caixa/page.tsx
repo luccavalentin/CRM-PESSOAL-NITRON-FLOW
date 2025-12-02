@@ -222,15 +222,9 @@ export default function FluxoCaixaPage() {
     const transacaoOriginalId = editingTransacao?.transacaoOriginalId || (editingTransacao?.id || uuidv4())
     
     // Determinar categoria
-    let categoriaFinal = 'Outros'
-    if (categoriaModal && categoriaModal.trim()) {
-      categoriaFinal = categoriaModal.trim()
-    } else {
-      const catForm = formData.get('categoria') as string
-      if (catForm && catForm.trim()) {
-        categoriaFinal = catForm.trim()
-      }
-    }
+    const categoriaModalTrim = categoriaModal?.trim() || ''
+    const categoriaForm = (formData.get('categoria') as string)?.trim() || ''
+    const categoriaFinal = categoriaModalTrim || categoriaForm || 'Outros'
     
     const novaTransacao: TransacaoFinanceira = {
       id: editingTransacao?.id || uuidv4(),
