@@ -43,7 +43,6 @@ import {
   Play,
   Settings,
   Zap,
-  Users,
 } from 'lucide-react'
 
 interface MenuItem {
