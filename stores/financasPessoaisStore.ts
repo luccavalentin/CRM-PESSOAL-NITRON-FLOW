@@ -102,7 +102,7 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
               data.getMonth() === mesAtual &&
               data.getFullYear() === anoAtual &&
               t.tipo === 'saida' &&
-              (t.paga === true || t.tipo === 'entrada') // Contas pagas ou entradas
+              t.paga === true // Apenas contas pagas
             )
           })
           .reduce((acc, t) => acc + t.valor, 0)
