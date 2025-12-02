@@ -819,8 +819,9 @@ export const saveProjetoPessoal = async (projeto: any) => {
         descricao: projeto.descricao,
         status: projeto.status,
         data_inicio: projeto.dataInicio,
-        data_fim: projeto.dataFim,
+        prazo: projeto.prazo || projeto.dataFim,
         progresso: projeto.progresso || 0,
+        tarefas_vinculadas: projeto.tarefasVinculadas || [],
       }, {
         onConflict: 'id'
       })
@@ -927,8 +928,9 @@ export const loadProjetosPessoais = async () => {
       descricao: p.descricao,
       status: p.status,
       dataInicio: p.data_inicio,
-      dataFim: p.data_fim,
+      prazo: p.prazo || p.data_fim,
       progresso: p.progresso || 0,
+      tarefasVinculadas: p.tarefas_vinculadas || [],
     }))
   } catch (error) {
     console.error('Erro ao carregar projetos pessoais do Supabase:', error)
