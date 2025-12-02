@@ -1,0 +1,43 @@
+{
+  "name": "NITRON FLOW - Sistema de Gestão Integrado",
+  "short_name": "NITRON FLOW",
+  "description": "Cresça. Automatize. Prospere. Sistema de gestão integrado para gestão empresarial e pessoal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0F",
+  "theme_color": "#00D9FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "finance"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Acesse o dashboard principal",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Minhas Finanças",
+      "short_name": "Finanças",
+      "description": "Controle financeiro pessoal",
+      "url": "/pessoal/financeiro/controle",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

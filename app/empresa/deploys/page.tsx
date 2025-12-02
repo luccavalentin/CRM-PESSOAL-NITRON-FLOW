@@ -5,20 +5,23 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
-import { Plus, Rocket, CheckCircle2, XCircle, Clock, Trash2, Edit2, Link2, ListTodo } from 'lucide-react'
+import { Plus, Rocket, CheckCircle2, XCircle, Clock, Trash2, Edit2, Link2, ListTodo, ExternalLink } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
 
 interface Deploy {
   id: string
-  versao: string
-  ambiente: string
-  descricao: string
-  responsavel: string
+  nomeProjeto?: string
+  linkGitHub?: string
+  versao?: string
+  ambiente?: string
+  descricao?: string
+  responsavel?: string
   data: string
   status: 'Sucesso' | 'Falha' | 'Em Andamento'
   observacoes?: string
+  projetoId?: string
 }
 
 export default function DeploysPage() {
@@ -48,13 +51,16 @@ export default function DeploysPage() {
     
     const novoDeploy: Deploy = {
       id: editingDeploy?.id || uuidv4(),
-      versao: formData.get('versao') as string,
-      ambiente: formData.get('ambiente') as string,
-      descricao: formData.get('descricao') as string,
-      responsavel: formData.get('responsavel') as string,
-      data: formData.get('data') as string,
+      nomeProjeto: formData.get('nomeProjeto') as string || undefined,
+      linkGitHub: formData.get('linkGitHub') as string || undefined,
+      versao: formData.get('versao') as string || undefined,
+      ambiente: formData.get('ambiente') as string || undefined,
+      descricao: formData.get('descricao') as string || undefined,
+      responsavel: formData.get('responsavel') as string || undefined,
+      data: formData.get('data') as string || new Date().toISOString().split('T')[0],
       status: (formData.get('status') as Deploy['status']) || 'Em Andamento',
       observacoes: formData.get('observacoes') as string || undefined,
+      projetoId: formData.get('projetoId') as string || undefined,
     }
 
     if (editingDeploy) {
@@ -85,7 +91,7 @@ export default function DeploysPage() {
     const formData = new FormData(e.currentTarget)
     const novaTarefa: Tarefa = {
       id: uuidv4(),
-      titulo: (formData.get('titulo') as string) || `Tarefa - Deploy v${deployParaTarefa.versao}`,
+      titulo: (formData.get('titulo') as string) || `Tarefa - Deploy ${deployParaTarefa.nomeProjeto || deployParaTarefa.versao ? `v${deployParaTarefa.versao}` : ''}`,
       descricao: formData.get('descricao') as string || undefined,
       prioridade: (formData.get('prioridade') as Prioridade) || 'Média',
       categoria: 'Empresarial' as CategoriaTarefa,
@@ -94,7 +100,7 @@ export default function DeploysPage() {
       tarefaRapida: formData.get('tarefaRapida') === 'on',
       recorrente: false,
       concluida: false,
-      etiquetas: [`Deploy: v${deployParaTarefa.versao}`],
+      etiquetas: [`Deploy: ${deployParaTarefa.nomeProjeto || (deployParaTarefa.versao ? `v${deployParaTarefa.versao}` : 'Deploy')}`],
       projetoId: undefined,
     }
 
@@ -163,8 +169,13 @@ export default function DeploysPage() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-white font-semibold text-lg">v{deploy.versao}</h3>
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          {deploy.nomeProjeto && (
+                            <h3 className="text-white font-semibold text-lg">{deploy.nomeProjeto}</h3>
+                          )}
+                          {deploy.versao && (
+                            <span className="text-white font-medium">v{deploy.versao}</span>
+                          )}
                           <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
                             deploy.status === 'Sucesso' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' :
                             deploy.status === 'Falha' ? 'bg-red-500/15 text-red-400 border-red-500/20' :
@@ -172,21 +183,42 @@ export default function DeploysPage() {
                           }`}>
                             {deploy.status}
                           </span>
-                          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent-electric/15 text-accent-electric border border-accent-electric/20">
-                            {deploy.ambiente}
-                          </span>
+                          {deploy.ambiente && (
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent-electric/15 text-accent-electric border border-accent-electric/20">
+                              {deploy.ambiente}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-gray-400 text-sm mb-3">{deploy.descricao}</p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>Responsável: {deploy.responsavel}</span>
-                          <span>•</span>
+                        {deploy.descricao && (
+                          <p className="text-gray-400 text-sm mb-3">{deploy.descricao}</p>
+                        )}
+                        {deploy.linkGitHub && (
+                          <div className="mb-3">
+                            <a
+                              href={deploy.linkGitHub}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-accent-electric hover:text-accent-cyan text-sm flex items-center gap-2 underline"
+                            >
+                            <ExternalLink className="w-4 h-4" />
+                            Ver no GitHub
+                            </a>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                          {deploy.responsavel && (
+                            <>
+                              <span>Responsável: {deploy.responsavel}</span>
+                              <span>•</span>
+                            </>
+                          )}
                           <span>{new Date(deploy.data).toLocaleDateString('pt-BR')}</span>
                         </div>
                         {deploy.observacoes && (
                           <p className="text-sm text-gray-400 mt-2">{deploy.observacoes}</p>
                         )}
                       </div>
-                      {tarefas.filter(t => 
+                      {deploy.versao && tarefas.filter(t => 
                         t.etiquetas?.some(e => e.includes(`v${deploy.versao}`))
                       ).length > 0 && (
                         <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
@@ -247,10 +279,34 @@ export default function DeploysPage() {
           size="lg"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Nome do Projeto
+              </label>
+              <input
+                type="text"
+                name="nomeProjeto"
+                defaultValue={editingDeploy?.nomeProjeto}
+                placeholder="Ex: Sistema de Vendas"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Link do GitHub
+              </label>
+              <input
+                type="url"
+                name="linkGitHub"
+                defaultValue={editingDeploy?.linkGitHub}
+                placeholder="https://github.com/usuario/repositorio"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Versão *
+                  Versão
                 </label>
                 <input
                   type="text"
@@ -262,14 +318,14 @@ export default function DeploysPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Ambiente *
+                  Ambiente
                 </label>
                 <select
                   name="ambiente"
                   defaultValue={editingDeploy?.ambiente}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 >
-                  <option value="">Selecione</option>
+                  <option value="">Selecione...</option>
                   <option value="Produção">Produção</option>
                   <option value="Homologação">Homologação</option>
                   <option value="Desenvolvimento">Desenvolvimento</option>
@@ -278,35 +334,37 @@ export default function DeploysPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descrição *
+                Descrição
               </label>
               <textarea
                 name="descricao"
                 defaultValue={editingDeploy?.descricao}
                 rows={3}
+                placeholder="Descrição do deploy..."
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Responsável *
+                  Responsável
                 </label>
                 <input
                   type="text"
                   name="responsavel"
                   defaultValue={editingDeploy?.responsavel}
+                  placeholder="Nome do responsável"
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Data *
+                  Data
                 </label>
                 <input
                   type="date"
                   name="data"
-                  defaultValue={editingDeploy?.data}
+                  defaultValue={editingDeploy?.data || new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
               </div>

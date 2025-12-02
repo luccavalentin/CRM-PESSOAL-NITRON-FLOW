@@ -773,10 +773,12 @@ export default function ProjetosPage() {
             
             const novoDeploy = {
               id: uuidv4(),
-              versao: formData.get('versao') as string,
-              ambiente: formData.get('ambiente') as string,
-              descricao: `Deploy do projeto: ${projetoParaDeploy.nome}`,
-              responsavel: formData.get('responsavel') as string,
+              nomeProjeto: formData.get('nomeProjeto') as string || undefined,
+              linkGitHub: formData.get('linkGitHub') as string || undefined,
+              versao: formData.get('versao') as string || undefined,
+              ambiente: formData.get('ambiente') as string || undefined,
+              descricao: formData.get('descricao') as string || `Deploy do projeto: ${projetoParaDeploy.nome}`,
+              responsavel: formData.get('responsavel') as string || undefined,
               data: formData.get('data') as string || new Date().toISOString().split('T')[0],
               status: 'Em Andamento' as const,
               observacoes: formData.get('observacoes') as string || undefined,
@@ -801,6 +803,28 @@ export default function ProjetosPage() {
                 Todas as etapas foram concluídas (100%)
               </p>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Nome do Projeto
+              </label>
+              <input
+                type="text"
+                name="nomeProjeto"
+                placeholder="Ex: Sistema de Vendas"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Link do GitHub
+              </label>
+              <input
+                type="url"
+                name="linkGitHub"
+                placeholder="https://github.com/usuario/repositorio"
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -821,11 +845,23 @@ export default function ProjetosPage() {
                   name="ambiente"
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 >
+                  <option value="">Selecione...</option>
                   <option value="Produção">Produção</option>
                   <option value="Homologação">Homologação</option>
                   <option value="Desenvolvimento">Desenvolvimento</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Descrição
+              </label>
+              <textarea
+                name="descricao"
+                rows={2}
+                placeholder="Descrição do deploy..."
+                className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

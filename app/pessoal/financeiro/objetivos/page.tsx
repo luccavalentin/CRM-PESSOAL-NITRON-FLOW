@@ -303,12 +303,11 @@ export default function ObjetivosFinanceirosPessoaisPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descrição *
+                Descrição
               </label>
               <input
                 type="text"
                 name="descricao"
-                required
                 defaultValue={editingMeta?.descricao}
                 placeholder="Ex: Meta de economia mensal"
                 className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
@@ -317,12 +316,11 @@ export default function ObjetivosFinanceirosPessoaisPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Valor Meta (R$) *
+                  Valor Meta (R$)
                 </label>
                 <input
                   type="number"
                   name="valorMeta"
-                  required
                   step="0.01"
                   min="0"
                   defaultValue={editingMeta?.valorMeta}

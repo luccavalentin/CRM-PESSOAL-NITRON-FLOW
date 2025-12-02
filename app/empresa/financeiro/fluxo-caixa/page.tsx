@@ -225,7 +225,7 @@ export default function FluxoCaixaPage() {
       id: editingTransacao?.id || uuidv4(),
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
-      categoria: categoriaModal || (formData.get('categoria') as string) || 'Outros',
+      categoria: (categoriaModal && categoriaModal.trim()) || ((formData.get('categoria') as string) || '').trim() || 'Outros',
       data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
       tipo: tipoTransacao,
       recorrente: isRecorrente,
