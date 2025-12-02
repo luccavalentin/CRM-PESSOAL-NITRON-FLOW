@@ -70,6 +70,30 @@ export default function FluxoCaixaPage() {
   const marcarComoPaga = useFinancasEmpresaStore((state) => state.marcarComoPaga)
   const rolarContasNaoPagas = useFinancasEmpresaStore((state) => state.rolarContasNaoPagas)
 
+  const calcularInfoParcela = useCallback((transacao: TransacaoFinanceira) => {
+    if (!transacao.transacaoOriginalId && !transacao.recorrente) return null
+    
+    const originalId = transacao.transacaoOriginalId || transacao.id
+    const transacoesRelacionadas = transacoes.filter(t => 
+      t.transacaoOriginalId === originalId || 
+      (t.id === originalId && t.recorrente) ||
+      (t.transacaoOriginalId && t.transacaoOriginalId === originalId)
+    )
+    
+    if (transacoesRelacionadas.length <= 1) return null
+    
+    // Ordenar por data
+    const ordenadas = [...transacoesRelacionadas].sort((a, b) => 
+      new Date(a.data).getTime() - new Date(b.data).getTime()
+    )
+    
+    const indiceParcela = ordenadas.findIndex(t => t.id === transacao.id)
+    const numeroParcela = indiceParcela + 1
+    const totalParcelas = ordenadas.length
+    
+    return { numeroParcela, totalParcelas }
+  }, [transacoes])
+
   useEffect(() => {
     calcularFluxoCaixa()
     rolarContasNaoPagas()

@@ -23,7 +23,7 @@ import {
   BarChart3,
   Edit2,
   Trash2,
-  Handshake,
+  Users,
   Target,
   TrendingUp,
   Clock,
@@ -249,7 +249,7 @@ export default function AcordoPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-              <Handshake className="w-8 h-8 text-accent-electric" />
+              <Users className="w-8 h-8 text-accent-electric" />
               Acordos e Renegociações
             </h1>
             <p className="text-gray-400">Mapeie suas dívidas e renegocie com condições melhores</p>
@@ -279,7 +279,7 @@ export default function AcordoPage() {
           <StatCard
             title="Total em Acordos"
             value={formatCurrency(totalAcordos)}
-            icon={Handshake}
+            icon={Users}
             valueColor="text-orange-400"
             className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20"
             subtitle={acordosAtivos.length > 0 ? `${acordosAtivos.length} ativo(s)` : undefined}
@@ -500,7 +500,7 @@ export default function AcordoPage() {
                         {acordoRelacionado && (
                           <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
-                              <Handshake className="w-4 h-4 text-orange-400" />
+                              <Users className="w-4 h-4 text-orange-400" />
                               <span className="text-sm font-semibold text-orange-400">Acordo Ativo</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -538,7 +538,7 @@ export default function AcordoPage() {
                             variant="primary"
                             className="flex items-center gap-2"
                           >
-                            <Handshake className="w-4 h-4" />
+                            <Users className="w-4 h-4" />
                             Criar Acordo
                           </Button>
                         )}
@@ -580,7 +580,7 @@ export default function AcordoPage() {
         {acordosAtivos.length > 0 && (
           <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-6">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Handshake className="w-5 h-5 text-accent-electric" />
+              <Users className="w-5 h-5 text-accent-electric" />
               Acordos Ativos ({acordosAtivos.length})
             </h2>
             <div className="space-y-4">

@@ -43,7 +43,7 @@ import {
   Play,
   Settings,
   Zap,
-  Handshake,
+  Users,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -119,7 +119,7 @@ const menuItems: MenuItem[] = [
           { id: 'aplicacoes-pessoal', label: 'Investimentos', path: '/pessoal/financeiro/aplicacoes', icon: <TrendingUp className="w-3.5 h-3.5" /> },
           { id: 'lista-compras', label: 'Lista de Compras', path: '/pessoal/financeiro/lista-compras', icon: <ShoppingCart className="w-3.5 h-3.5" /> },
           { id: 'objetivos-financeiros-pessoal', label: 'Objetivos', path: '/pessoal/financeiro/objetivos', icon: <Target className="w-3.5 h-3.5" /> },
-          { id: 'acordo', label: 'Acordo', path: '/pessoal/financeiro/acordo', icon: <Handshake className="w-3.5 h-3.5" /> },
+          { id: 'acordo', label: 'Acordo', path: '/pessoal/financeiro/acordo', icon: <Users className="w-3.5 h-3.5" /> },
         ],
       },
       {

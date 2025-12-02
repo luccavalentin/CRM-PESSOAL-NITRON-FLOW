@@ -732,3 +732,181 @@ export const loadItensCompra = async () => {
   }
 }
 
+/**
+ * Salva uma ideia no Supabase
+ */
+export const saveIdeia = async (ideia: any) => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return
+
+    const { error } = await supabase
+      .from('ideias')
+      .upsert({
+        id: ideia.id,
+        usuario_id: userId,
+        titulo: ideia.titulo,
+        descricao: ideia.descricao,
+        categoria: ideia.categoria,
+        prioridade: ideia.prioridade,
+        status: ideia.status,
+        data_criacao: ideia.dataCriacao,
+        tarefa_id: ideia.tarefaId,
+        projeto_id: ideia.projetoId,
+      }, {
+        onConflict: 'id'
+      })
+
+    if (error) {
+      console.error('Erro ao salvar ideia no Supabase:', error)
+    }
+  } catch (error) {
+    console.error('Erro ao salvar ideia no Supabase:', error)
+  }
+}
+
+/**
+ * Deleta uma ideia do Supabase
+ */
+export const deleteIdeia = async (id: string) => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return
+
+    const { error } = await supabase
+      .from('ideias')
+      .delete()
+      .eq('id', id)
+      .eq('usuario_id', userId)
+
+    if (error) {
+      console.error('Erro ao deletar ideia no Supabase:', error)
+    }
+  } catch (error) {
+    console.error('Erro ao deletar ideia no Supabase:', error)
+  }
+}
+
+/**
+ * Salva um projeto pessoal no Supabase
+ */
+export const saveProjetoPessoal = async (projeto: any) => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return
+
+    const { error } = await supabase
+      .from('projetos_pessoais')
+      .upsert({
+        id: projeto.id,
+        usuario_id: userId,
+        nome: projeto.nome,
+        descricao: projeto.descricao,
+        status: projeto.status,
+        data_inicio: projeto.dataInicio,
+        data_fim: projeto.dataFim,
+        progresso: projeto.progresso || 0,
+      }, {
+        onConflict: 'id'
+      })
+
+    if (error) {
+      console.error('Erro ao salvar projeto pessoal no Supabase:', error)
+    }
+  } catch (error) {
+    console.error('Erro ao salvar projeto pessoal no Supabase:', error)
+  }
+}
+
+/**
+ * Deleta um projeto pessoal do Supabase
+ */
+export const deleteProjetoPessoal = async (id: string) => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return
+
+    const { error } = await supabase
+      .from('projetos_pessoais')
+      .delete()
+      .eq('id', id)
+      .eq('usuario_id', userId)
+
+    if (error) {
+      console.error('Erro ao deletar projeto pessoal no Supabase:', error)
+    }
+  } catch (error) {
+    console.error('Erro ao deletar projeto pessoal no Supabase:', error)
+  }
+}
+
+/**
+ * Carrega todas as ideias do Supabase
+ */
+export const loadIdeias = async () => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return []
+
+    const { data, error } = await supabase
+      .from('ideias')
+      .select('*')
+      .eq('usuario_id', userId)
+      .order('data_criacao', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao carregar ideias do Supabase:', error)
+      return []
+    }
+
+    return (data || []).map(i => ({
+      id: i.id,
+      titulo: i.titulo,
+      descricao: i.descricao,
+      categoria: i.categoria,
+      prioridade: i.prioridade,
+      status: i.status,
+      dataCriacao: i.data_criacao || i.created_at,
+      tarefaId: i.tarefa_id,
+      projetoId: i.projeto_id,
+    }))
+  } catch (error) {
+    console.error('Erro ao carregar ideias do Supabase:', error)
+    return []
+  }
+}
+
+/**
+ * Carrega todos os projetos pessoais do Supabase
+ */
+export const loadProjetosPessoais = async () => {
+  try {
+    const userId = await getCurrentUserId()
+    if (!userId) return []
+
+    const { data, error } = await supabase
+      .from('projetos_pessoais')
+      .select('*')
+      .eq('usuario_id', userId)
+      .order('data_inicio', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao carregar projetos pessoais do Supabase:', error)
+      return []
+    }
+
+    return (data || []).map(p => ({
+      id: p.id,
+      nome: p.nome,
+      descricao: p.descricao,
+      status: p.status,
+      dataInicio: p.data_inicio,
+      dataFim: p.data_fim,
+      progresso: p.progresso || 0,
+    }))
+  } catch (error) {
+    console.error('Erro ao carregar projetos pessoais do Supabase:', error)
+    return []
+  }
+}
+
