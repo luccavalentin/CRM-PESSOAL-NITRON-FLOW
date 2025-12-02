@@ -1006,9 +1006,6 @@ export default function FluxoCaixaPage() {
                   </div>
                 )
               })}
-                  </div>
-                </div>
-              ))}
             </div>
           ) : (
             <div className="text-center py-12">
