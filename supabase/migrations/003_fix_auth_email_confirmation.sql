@@ -4,19 +4,31 @@
 -- Este script resolve o problema de login após cadastro
 -- Execute este script no Supabase SQL Editor
 
+-- 0. Garantir que a tabela usuarios existe (criar se não existir)
+CREATE TABLE IF NOT EXISTS usuarios (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nome VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  status VARCHAR(20) DEFAULT 'Ativo' CHECK (status IN ('Ativo', 'Inativo')),
+  plano VARCHAR(100),
+  aplicativo_vinculado VARCHAR(255),
+  data_registro TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  ultimo_acesso TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 1. Criar função para confirmar email automaticamente após registro
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Confirma o email automaticamente
+  -- Confirma o email automaticamente (apenas email_confirmed_at, confirmed_at é gerado automaticamente)
   UPDATE auth.users
-  SET 
-    email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-    confirmed_at = COALESCE(confirmed_at, NOW())
+  SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
   WHERE id = NEW.id;
   
   -- Garante que o perfil seja criado na tabela usuarios
-  INSERT INTO public.usuarios (id, nome, email, status, data_registro)
+  INSERT INTO usuarios (id, nome, email, status, data_registro)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1)),
@@ -43,14 +55,13 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- 4. Atualizar TODOS os usuários existentes para terem email confirmado
+-- Nota: confirmed_at é uma coluna gerada automaticamente, não pode ser atualizada manualmente
 UPDATE auth.users
-SET 
-  email_confirmed_at = COALESCE(email_confirmed_at, created_at),
-  confirmed_at = COALESCE(confirmed_at, created_at)
-WHERE email_confirmed_at IS NULL OR confirmed_at IS NULL;
+SET email_confirmed_at = COALESCE(email_confirmed_at, created_at)
+WHERE email_confirmed_at IS NULL;
 
 -- 5. Sincronizar dados de auth.users para usuarios (para usuários que não têm perfil)
-INSERT INTO public.usuarios (id, nome, email, status, data_registro)
+INSERT INTO usuarios (id, nome, email, status, data_registro)
 SELECT 
   au.id,
   COALESCE(au.raw_user_meta_data->>'nome', split_part(au.email, '@', 1)) as nome,
@@ -58,7 +69,7 @@ SELECT
   'Ativo' as status,
   COALESCE(au.created_at, NOW()) as data_registro
 FROM auth.users au
-LEFT JOIN public.usuarios u ON u.id = au.id
+LEFT JOIN usuarios u ON u.id = au.id
 WHERE u.id IS NULL
 ON CONFLICT (id) DO UPDATE
 SET 
@@ -79,11 +90,9 @@ BEGIN
     RETURN FALSE;
   END IF;
   
-  -- Confirma o email se não estiver confirmado
+  -- Confirma o email se não estiver confirmado (apenas email_confirmed_at)
   UPDATE auth.users
-  SET 
-    email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
-    confirmed_at = COALESCE(confirmed_at, NOW())
+  SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
   WHERE id = user_record.id;
   
   RETURN TRUE;
@@ -102,3 +111,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Para testar se funcionou, execute:
 -- SELECT email, email_confirmed_at, confirmed_at FROM auth.users;
+-- Nota: confirmed_at é gerado automaticamente pelo Supabase baseado em email_confirmed_at
