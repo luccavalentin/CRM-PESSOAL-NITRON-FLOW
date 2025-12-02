@@ -212,9 +212,15 @@ export const saveProjeto = async (projeto: any) => {
         prioridade: projeto.prioridade,
         data_inicio: projeto.dataInicio,
         data_fim: projeto.dataFim,
+        prazo: projeto.prazo,
         cliente_id: projeto.clienteId,
+        cliente: projeto.cliente,
         valor: projeto.valor,
         progresso: projeto.progresso || 0,
+        etapas_concluidas: projeto.etapasConcluidas || 0,
+        total_etapas: projeto.totalEtapas || 7,
+        quantidade_anexos: projeto.quantidadeAnexos || 0,
+        ideia_id: projeto.ideiaId,
       }, {
         onConflict: 'id'
       })
@@ -598,15 +604,17 @@ export const loadProjetos = async () => {
       nome: p.nome,
       descricao: p.descricao,
       status: p.status,
-      prioridade: p.prioridade,
-      dataInicio: p.data_inicio,
-      dataFim: p.data_fim,
-      clienteId: p.cliente_id,
-      valor: p.valor ? parseFloat(p.valor) : 0,
-      progresso: p.progresso || 0,
+      cliente: p.cliente || p.cliente_id,
+      valor: p.valor ? parseFloat(p.valor) : undefined,
+      precoVenda: p.preco_venda ? parseFloat(p.preco_venda) : undefined,
+      quantidadeClientes: p.quantidade_clientes ? parseInt(p.quantidade_clientes) : undefined,
+      etapasConcluidas: p.etapas_concluidas || 0,
+      totalEtapas: p.total_etapas || 7,
       etapas: [], // Será carregado separadamente se necessário
-      totalEtapas: 7,
-      etapasConcluidas: 0,
+      dataInicio: p.data_inicio,
+      prazo: p.prazo || p.data_fim,
+      quantidadeAnexos: p.quantidade_anexos || 0,
+      ideiaId: p.ideia_id,
     }))
   } catch (error) {
     console.error('Erro ao carregar projetos do Supabase:', error)
