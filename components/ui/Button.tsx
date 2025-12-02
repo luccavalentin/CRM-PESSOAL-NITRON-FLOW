@@ -30,9 +30,29 @@ export default function Button({
     lg: 'px-5 py-2.5 text-base',
   }
 
+  // Verificar se o botão tem classes de azul ciano (accent-electric ou accent-cyan)
+  const hasCyanClasses = className.includes('accent-electric') || 
+                        className.includes('accent-cyan') || 
+                        className.includes('from-accent-electric') ||
+                        className.includes('to-accent-cyan')
+  
+  const isCyanButton = hasCyanClasses || variant === 'primary'
+  
+  // Se for botão azul ciano, substituir qualquer classe de texto por azul marinho
+  let processedClassName = className
+  let variantClass = variantClasses[variant]
+  
+  if (isCyanButton) {
+    // Remover text-white do variantClasses quando for botão ciano
+    variantClass = variantClass.replace('text-white', '')
+    // Remover todas as classes de texto da className e adicionar text-blue-900 (azul marinho)
+    processedClassName = className.replace(/text-[\w-]+/g, '') + ' text-blue-900'
+    processedClassName = processedClassName.trim()
+  }
+
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} ${variantClass} ${sizeClasses[size]} ${processedClassName}`}
       {...props}
     >
       {children}

@@ -5,7 +5,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
-import { Plus, BookOpen, CheckCircle2, Clock, Trash2, Edit2, Play, FolderOpen, FileText, ChevronDown, ChevronRight, Layers, BarChart3, PieChart as PieChartIcon } from 'lucide-react'
+import { Plus, BookOpen, CheckCircle2, Clock, Trash2, Edit2, Play, FolderOpen, FileText, ChevronDown, ChevronRight, Layers, BarChart3, PieChart as PieChartIcon, Check, Link as LinkIcon, ExternalLink } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts'
 
@@ -15,11 +15,14 @@ interface Aula {
   id: string
   titulo: string
   urlVideo?: string
+  links?: string[] // Array de links adicionais
   duracao: number
   status: 'Não iniciada' | 'Em andamento' | 'Concluída'
   dataInicio?: string
   dataConclusao?: string
   notas?: string
+  concluida?: boolean // Check de conclusão
+  aulas?: Aula[] // Sub-aulas (aulas dentro de aulas)
 }
 
 interface Materia {
@@ -27,6 +30,7 @@ interface Materia {
   nome: string
   descricao?: string
   aulas: Aula[]
+  concluida?: boolean // Check de conclusão
 }
 
 interface Tema {
@@ -34,6 +38,7 @@ interface Tema {
   nome: string
   descricao?: string
   materias: Materia[]
+  concluido?: boolean // Check de conclusão
 }
 
 export default function EstudosPage() {
@@ -164,15 +169,25 @@ export default function EstudosPage() {
     
     const formData = new FormData(e.currentTarget)
     
+    // Processar links (separados por vírgula ou quebra de linha)
+    const linksInput = formData.get('links') as string || ''
+    const links = linksInput
+      .split(/[,\n]/)
+      .map(link => link.trim())
+      .filter(link => link.length > 0 && (link.startsWith('http://') || link.startsWith('https://')))
+    
     const novaAula: Aula = {
       id: editingAula.aula.id || uuidv4(),
       titulo: (formData.get('titulo') as string) || 'Sem título',
       urlVideo: formData.get('urlVideo') as string || undefined,
+      links: links.length > 0 ? links : undefined,
       duracao: parseInt(formData.get('duracao') as string) || 0,
       status: editingAula.aula.status || 'Não iniciada',
       dataInicio: editingAula.aula.dataInicio,
       dataConclusao: editingAula.aula.dataConclusao,
       notas: formData.get('notas') as string || undefined,
+      concluida: editingAula.aula.concluida || false,
+      aulas: editingAula.aula.aulas || [], // Preservar sub-aulas
     }
 
     setTemas(temas.map(tema => {
@@ -182,10 +197,10 @@ export default function EstudosPage() {
           materias: tema.materias.map(materia => {
             if (materia.id === editingAula.materiaId) {
               if (editingAula.aula.id) {
-                // Editar aula existente
+                // Editar aula existente (recursivamente para suportar sub-aulas)
                 return {
                   ...materia,
-                  aulas: materia.aulas.map(a => a.id === editingAula.aula.id ? novaAula : a)
+                  aulas: updateAulaRecursiva(materia.aulas, editingAula.aula.id, () => novaAula)
                 }
               } else {
                 // Adicionar nova aula
@@ -206,8 +221,23 @@ export default function EstudosPage() {
     setEditingAula(null)
   }
 
+  // Função auxiliar para deletar aula recursivamente
+  const deleteAulaRecursiva = (aulas: Aula[], aulaId: string): Aula[] => {
+    return aulas
+      .filter(a => a.id !== aulaId)
+      .map(aula => {
+        if (aula.aulas && aula.aulas.length > 0) {
+          return {
+            ...aula,
+            aulas: deleteAulaRecursiva(aula.aulas, aulaId)
+          }
+        }
+        return aula
+      })
+  }
+
   const handleDeleteAula = (temaId: string, materiaId: string, aulaId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta aula?')) {
+    if (confirm('Tem certeza que deseja excluir esta aula? Todas as sub-aulas também serão excluídas.')) {
       setTemas(temas.map(tema => {
         if (tema.id === temaId) {
           return {
@@ -216,7 +246,7 @@ export default function EstudosPage() {
               if (materia.id === materiaId) {
                 return {
                   ...materia,
-                  aulas: materia.aulas.filter(a => a.id !== aulaId)
+                  aulas: deleteAulaRecursiva(materia.aulas, aulaId)
                 }
               }
               return materia
@@ -228,6 +258,34 @@ export default function EstudosPage() {
     }
   }
 
+  // Função auxiliar para atualizar aula recursivamente (incluindo sub-aulas)
+  const updateAulaRecursiva = (aulas: Aula[], aulaId: string, updater: (aula: Aula) => Aula): Aula[] => {
+    return aulas.map(aula => {
+      if (aula.id === aulaId) {
+        return updater(aula)
+      }
+      if (aula.aulas && aula.aulas.length > 0) {
+        return {
+          ...aula,
+          aulas: updateAulaRecursiva(aula.aulas, aulaId, updater)
+        }
+      }
+      return aula
+    })
+  }
+
+  // Função auxiliar para encontrar aula recursivamente
+  const findAulaRecursiva = (aulas: Aula[], aulaId: string): Aula | null => {
+    for (const aula of aulas) {
+      if (aula.id === aulaId) return aula
+      if (aula.aulas && aula.aulas.length > 0) {
+        const found = findAulaRecursiva(aula.aulas, aulaId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   const handleStatusChange = (temaId: string, materiaId: string, aulaId: string, novoStatus: Aula['status']) => {
     setTemas(temas.map(tema => {
       if (tema.id === temaId) {
@@ -237,17 +295,62 @@ export default function EstudosPage() {
             if (materia.id === materiaId) {
               return {
                 ...materia,
-                aulas: materia.aulas.map(aula => {
-                  if (aula.id === aulaId) {
-                    return {
-                      ...aula,
-                      status: novoStatus,
-                      dataInicio: novoStatus === 'Em andamento' && !aula.dataInicio ? new Date().toISOString().split('T')[0] : aula.dataInicio,
-                      dataConclusao: novoStatus === 'Concluída' ? new Date().toISOString().split('T')[0] : aula.dataConclusao,
-                    }
-                  }
-                  return aula
-                })
+                aulas: updateAulaRecursiva(materia.aulas, aulaId, (aula) => ({
+                  ...aula,
+                  status: novoStatus,
+                  dataInicio: novoStatus === 'Em andamento' && !aula.dataInicio ? new Date().toISOString().split('T')[0] : aula.dataInicio,
+                  dataConclusao: novoStatus === 'Concluída' ? new Date().toISOString().split('T')[0] : aula.dataConclusao,
+                }))
+              }
+            }
+            return materia
+          })
+        }
+      }
+      return tema
+    }))
+  }
+
+  // Handler para toggle de check em Tema
+  const handleToggleTemaCheck = (temaId: string) => {
+    setTemas(temas.map(tema => 
+      tema.id === temaId 
+        ? { ...tema, concluido: !tema.concluido }
+        : tema
+    ))
+  }
+
+  // Handler para toggle de check em Matéria
+  const handleToggleMateriaCheck = (temaId: string, materiaId: string) => {
+    setTemas(temas.map(tema => {
+      if (tema.id === temaId) {
+        return {
+          ...tema,
+          materias: tema.materias.map(materia =>
+            materia.id === materiaId
+              ? { ...materia, concluida: !materia.concluida }
+              : materia
+          )
+        }
+      }
+      return tema
+    }))
+  }
+
+  // Handler para toggle de check em Aula
+  const handleToggleAulaCheck = (temaId: string, materiaId: string, aulaId: string) => {
+    setTemas(temas.map(tema => {
+      if (tema.id === temaId) {
+        return {
+          ...tema,
+          materias: tema.materias.map(materia => {
+            if (materia.id === materiaId) {
+              return {
+                ...materia,
+                aulas: updateAulaRecursiva(materia.aulas, aulaId, (aula) => ({
+                  ...aula,
+                  concluida: !aula.concluida
+                }))
               }
             }
             return materia
@@ -443,9 +546,22 @@ export default function EstudosPage() {
                           ) : (
                             <ChevronRight className="w-5 h-5 text-gray-400" />
                           )}
-                          <FolderOpen className="w-5 h-5 text-accent-electric" />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleToggleTemaCheck(tema.id)
+                            }}
+                            className={`flex items-center justify-center w-6 h-6 rounded border-2 transition-all ${
+                              tema.concluido
+                                ? 'bg-emerald-500 border-emerald-500 text-white'
+                                : 'border-gray-500 text-transparent hover:border-emerald-500'
+                            }`}
+                          >
+                            {tema.concluido && <Check className="w-4 h-4" />}
+                          </button>
+                          <FolderOpen className={`w-5 h-5 ${tema.concluido ? 'text-emerald-400' : 'text-accent-electric'}`} />
                           <div>
-                            <h3 className="text-white font-semibold text-lg">{tema.nome}</h3>
+                            <h3 className={`font-semibold text-lg ${tema.concluido ? 'text-emerald-400 line-through' : 'text-white'}`}>{tema.nome}</h3>
                             {tema.descricao && (
                               <p className="text-sm text-gray-400 mt-1">{tema.descricao}</p>
                             )}
@@ -509,9 +625,22 @@ export default function EstudosPage() {
                                       ) : (
                                         <ChevronRight className="w-4 h-4 text-gray-400" />
                                       )}
-                                      <FileText className="w-4 h-4 text-blue-400" />
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleToggleMateriaCheck(tema.id, materia.id)
+                                        }}
+                                        className={`flex items-center justify-center w-5 h-5 rounded border-2 transition-all ${
+                                          materia.concluida
+                                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                                            : 'border-gray-500 text-transparent hover:border-emerald-500'
+                                        }`}
+                                      >
+                                        {materia.concluida && <Check className="w-3 h-3" />}
+                                      </button>
+                                      <FileText className={`w-4 h-4 ${materia.concluida ? 'text-emerald-400' : 'text-blue-400'}`} />
                                       <div>
-                                        <h4 className="text-white font-medium">{materia.nome}</h4>
+                                        <h4 className={`font-medium ${materia.concluida ? 'text-emerald-400 line-through' : 'text-white'}`}>{materia.nome}</h4>
                                         {materia.descricao && (
                                           <p className="text-xs text-gray-400 mt-1">{materia.descricao}</p>
                                         )}

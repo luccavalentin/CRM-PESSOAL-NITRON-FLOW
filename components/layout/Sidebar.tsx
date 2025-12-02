@@ -113,7 +113,7 @@ const menuItems: MenuItem[] = [
         label: 'Financeiro',
         icon: <Wallet className="w-3.5 h-3.5" />,
         children: [
-          { id: 'controle-financas', label: 'Controle', path: '/pessoal/financeiro/controle', icon: <Calculator className="w-3.5 h-3.5" /> },
+          { id: 'controle-financas', label: 'Minhas Finanças', path: '/pessoal/financeiro/controle', icon: <Calculator className="w-3.5 h-3.5" /> },
           { id: 'reserva-emergencia-pessoal', label: 'Reserva', path: '/pessoal/financeiro/reserva', icon: <Shield className="w-3.5 h-3.5" /> },
           { id: 'aplicacoes-pessoal', label: 'Investimentos', path: '/pessoal/financeiro/aplicacoes', icon: <TrendingUp className="w-3.5 h-3.5" /> },
           { id: 'lista-compras', label: 'Lista de Compras', path: '/pessoal/financeiro/lista-compras', icon: <ShoppingCart className="w-3.5 h-3.5" /> },
