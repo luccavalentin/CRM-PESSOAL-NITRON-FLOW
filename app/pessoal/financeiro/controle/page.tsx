@@ -9,6 +9,7 @@ import CategoryInput from '@/components/ui/CategoryInput'
 import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
+import { formatDateForInput } from '@/utils/formatDate'
 import { TransacaoFinanceira } from '@/types'
 import { Plus, TrendingUp, TrendingDown, Wallet, Link2, ListTodo, Edit2, Trash2, Filter, Search, Calendar, BarChart3, PieChart as PieChartIcon, ArrowUpDown, CheckSquare, Square, Trash, CheckCircle2, AlertCircle } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
@@ -291,7 +292,7 @@ export default function ControleFinancasPage() {
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
       categoria: (categoriaModal && categoriaModal.trim()) || (formData.get('categoria') as string)?.trim() || 'Outros',
-      data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+      data: (formData.get('data') as string) || formatDateForInput(),
       tipo: tipoTransacao,
       recorrente: isRecorrente,
       tipoRecorrencia: isRecorrente ? tipoRecorrencia : undefined,
@@ -420,7 +421,7 @@ export default function ControleFinancasPage() {
       descricao: formData.get('descricao') as string || undefined,
       prioridade: (formData.get('prioridade') as Prioridade) || 'Média',
       categoria: 'Pessoal' as CategoriaTarefa,
-      data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
+      data: (formData.get('data') as string) || formatDateForInput(),
       status: 'Pendente' as StatusTarefa,
       tarefaRapida: formData.get('tarefaRapida') === 'on',
       recorrente: false,
@@ -1032,7 +1033,7 @@ export default function ControleFinancasPage() {
               <input
                 type="date"
                 name="data"
-                defaultValue={editingTransacao?.data || new Date().toISOString().split('T')[0]}
+                defaultValue={editingTransacao?.data ? formatDateForInput(editingTransacao.data) : formatDateForInput()}
                 className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>
@@ -1175,7 +1176,7 @@ export default function ControleFinancasPage() {
                 <input
                   type="date"
                   name="data"
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  defaultValue={formatDateForInput()}
                   className="w-full px-4 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
                 />
               </div>

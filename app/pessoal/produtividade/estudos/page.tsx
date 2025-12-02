@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
+import { useConfirm } from '@/hooks/useConfirm'
 import { Plus, BookOpen, CheckCircle2, Clock, Trash2, Edit2, Play, FolderOpen, FileText, ChevronDown, ChevronRight, Layers, BarChart3, PieChart as PieChartIcon, Check, Link as LinkIcon, ExternalLink } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts'
@@ -42,6 +43,7 @@ interface Tema {
 }
 
 export default function EstudosPage() {
+  const { confirm, ConfirmModal } = useConfirm()
   const [isTemaModalOpen, setIsTemaModalOpen] = useState(false)
   const [isMateriaModalOpen, setIsMateriaModalOpen] = useState(false)
   const [isAulaModalOpen, setIsAulaModalOpen] = useState(false)
@@ -105,8 +107,15 @@ export default function EstudosPage() {
     setEditingTema(null)
   }
 
-  const handleDeleteTema = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este tema? Todas as matérias e aulas serão excluídas.')) {
+  const handleDeleteTema = async (id: string) => {
+    const confirmed = await confirm({
+      title: 'Excluir Tema',
+      message: 'Tem certeza que deseja excluir este tema? Todas as matérias e aulas serão excluídas.',
+      variant: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+    })
+    if (confirmed) {
       setTemas(temas.filter(t => t.id !== id))
     }
   }
@@ -148,8 +157,15 @@ export default function EstudosPage() {
     setEditingMateria(null)
   }
 
-  const handleDeleteMateria = (temaId: string, materiaId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta matéria? Todas as aulas serão excluídas.')) {
+  const handleDeleteMateria = async (temaId: string, materiaId: string) => {
+    const confirmed = await confirm({
+      title: 'Excluir Matéria',
+      message: 'Tem certeza que deseja excluir esta matéria? Todas as aulas serão excluídas.',
+      variant: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+    })
+    if (confirmed) {
       setTemas(temas.map(tema => {
         if (tema.id === temaId) {
           return {
@@ -236,8 +252,15 @@ export default function EstudosPage() {
       })
   }
 
-  const handleDeleteAula = (temaId: string, materiaId: string, aulaId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta aula? Todas as sub-aulas também serão excluídas.')) {
+  const handleDeleteAula = async (temaId: string, materiaId: string, aulaId: string) => {
+    const confirmed = await confirm({
+      title: 'Excluir Aula',
+      message: 'Tem certeza que deseja excluir esta aula? Todas as sub-aulas também serão excluídas.',
+      variant: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+    })
+    if (confirmed) {
       setTemas(temas.map(tema => {
         if (tema.id === temaId) {
           return {
@@ -977,6 +1000,9 @@ export default function EstudosPage() {
             </div>
           </form>
         </Modal>
+
+        {/* Modal de Confirmação */}
+        <ConfirmModal />
       </div>
     </MainLayout>
   )
