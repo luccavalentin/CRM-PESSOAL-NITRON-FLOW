@@ -312,6 +312,11 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
           saldoAcumulado 
         })
       },
+      loadFromSupabase: async () => {
+        const transacoes = await loadTransacoesPessoais()
+        set({ transacoes })
+        get().calcularSaldo()
+      },
     }),
     {
       name: 'financas-pessoais-storage',
