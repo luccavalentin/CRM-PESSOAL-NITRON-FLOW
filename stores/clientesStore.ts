@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { saveCliente, deleteCliente as deleteClienteFromSupabase, loadClientes } from '@/utils/supabaseSync'
 
 export interface Cliente {
   id: string
@@ -52,7 +53,7 @@ export const useClientesStore = create<ClientesStore>()(
       },
       deleteCliente: async (id) => {
         // Deletar no Supabase
-        await deleteCliente(id)
+        await deleteClienteFromSupabase(id)
         set((state) => ({
           clientes: state.clientes.filter((c) => c.id !== id),
         }))
