@@ -5,11 +5,13 @@ import { Search, Plus, X } from 'lucide-react'
 
 interface CategoryInputProps {
   value: string
+  defaultValue?: string
   onChange: (value: string) => void
   categories: string[]
   onAddCategory?: (category: string) => void
   placeholder?: string
   className?: string
+  name?: string
 }
 
 export default function CategoryInput({
