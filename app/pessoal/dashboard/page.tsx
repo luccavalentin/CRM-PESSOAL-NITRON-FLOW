@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
+import MonthFilter from '@/components/ui/MonthFilter'
 import StatCard from '@/components/ui/StatCard'
 import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { useProjetosPessoaisStore } from '@/stores/projetosPessoaisStore'
@@ -47,13 +48,51 @@ export default function DashboardPessoalPage() {
   const mostrarValores = usePreferencesStore((state) => state.mostrarValores)
   const toggleMostrarValores = usePreferencesStore((state) => state.toggleMostrarValores)
 
+  const [mesSelecionado, setMesSelecionado] = useState<number>(() => new Date().getMonth())
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(() => new Date().getFullYear())
+
   useEffect(() => {
     calcularSaldo()
   }, [transacoes, calcularSaldo])
 
-  const entradasMes = getEntradasMes()
-  const saidasMes = getSaidasMes()
-  const previsaoMes = getPrevisaoMes()
+  // Calcular valores do mês selecionado
+  const entradasMes = useMemo(() => {
+    return transacoes
+      .filter(t => {
+        const data = new Date(t.data)
+        return data.getMonth() === mesSelecionado && 
+               data.getFullYear() === anoSelecionado &&
+               t.tipo === 'entrada'
+      })
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoes, mesSelecionado, anoSelecionado])
+
+  const saidasMes = useMemo(() => {
+    return transacoes
+      .filter(t => {
+        const data = new Date(t.data)
+        return data.getMonth() === mesSelecionado && 
+               data.getFullYear() === anoSelecionado &&
+               t.tipo === 'saida' &&
+               t.paga === true
+      })
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoes, mesSelecionado, anoSelecionado])
+
+  const previsaoMes = useMemo(() => {
+    const entradas = entradasMes
+    const saidasPagas = saidasMes
+    const saidasPendentes = transacoes
+      .filter(t => {
+        const data = new Date(t.data)
+        return data.getMonth() === mesSelecionado && 
+               data.getFullYear() === anoSelecionado &&
+               t.tipo === 'saida' &&
+               !t.paga
+      })
+      .reduce((acc, t) => acc + t.valor, 0)
+    return entradas - saidasPagas - saidasPendentes
+  }, [transacoes, entradasMes, saidasMes, mesSelecionado, anoSelecionado])
 
   // Estatísticas de tarefas
   const hoje = new Date().toISOString().split('T')[0]
@@ -83,13 +122,12 @@ export default function DashboardPessoalPage() {
   const totalAtual = metas.reduce((acc, m) => acc + m.valorAtual, 0)
   const percentualGeralMetas = totalMetas > 0 ? (totalAtual / totalMetas) * 100 : 0
 
-  // Dados para gráficos
+  // Dados para gráficos - últimos 6 meses a partir do mês selecionado
   const dadosFluxoCaixa = useMemo(() => {
     const ultimos6Meses = []
-    const hoje = new Date()
     
     for (let i = 5; i >= 0; i--) {
-      const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
+      const data = new Date(anoSelecionado, mesSelecionado - i, 1)
       const mes = data.toLocaleDateString('pt-BR', { month: 'short' })
       const ano = data.getFullYear()
       
@@ -120,13 +158,18 @@ export default function DashboardPessoalPage() {
     }
     
     return ultimos6Meses
-  }, [transacoes])
+  }, [transacoes, mesSelecionado, anoSelecionado])
 
   const dadosCategorias = useMemo(() => {
     const categoriasMap = new Map<string, number>()
     
     transacoes
-      .filter(t => t.tipo === 'saida')
+      .filter(t => {
+        const data = new Date(t.data)
+        return data.getMonth() === mesSelecionado && 
+               data.getFullYear() === anoSelecionado &&
+               t.tipo === 'saida'
+      })
       .forEach(t => {
         const atual = categoriasMap.get(t.categoria) || 0
         categoriasMap.set(t.categoria, atual + t.valor)
@@ -136,7 +179,7 @@ export default function DashboardPessoalPage() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6)
-  }, [transacoes])
+  }, [transacoes, mesSelecionado, anoSelecionado])
 
   const dadosStatusProjetos = useMemo(() => {
     const statusMap = new Map<string, number>()
@@ -219,6 +262,18 @@ export default function DashboardPessoalPage() {
           </button>
         </div>
 
+        {/* Filtro de Mês */}
+        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4">
+          <MonthFilter
+            selectedMonth={mesSelecionado}
+            selectedYear={anoSelecionado}
+            onMonthChange={(month, year) => {
+              setMesSelecionado(month)
+              setAnoSelecionado(year)
+            }}
+          />
+        </div>
+
         {/* Financial Overview - Hero Section */}
         <div className="bg-gradient-to-br from-accent-electric/10 via-accent-cyan/5 to-transparent border border-accent-electric/20 rounded-2xl p-6 sm:p-8">
           <div className="flex items-center gap-2 mb-6">
@@ -234,21 +289,21 @@ export default function DashboardPessoalPage() {
               className="bg-dark-black/50 border-accent-electric/20"
             />
             <StatCard
-              title="Entradas do Mês"
+              title="Entradas do Período"
               value={mostrarValores ? formatCurrency(entradasMes) : '••••••'}
               icon={TrendingUp}
               valueColor="text-emerald-400"
               className="bg-dark-black/50 border-accent-electric/20"
             />
             <StatCard
-              title="Contas a Pagar do Mês"
+              title="Contas a Pagar do Período"
               value={mostrarValores ? formatCurrency(saidasMes) : '••••••'}
               icon={TrendingDown}
               valueColor="text-red-400"
               className="bg-dark-black/50 border-accent-electric/20"
             />
             <StatCard
-              title="Previsão do Mês"
+              title="Previsão do Período"
               value={mostrarValores ? formatCurrency(previsaoMes) : '••••••'}
               icon={Activity}
               valueColor={previsaoMes > 0 ? 'text-emerald-400' : 'text-red-400'}

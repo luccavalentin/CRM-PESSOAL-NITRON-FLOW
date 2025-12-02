@@ -52,3 +52,5 @@ O arquivo `.env.local` deve estar na **raiz do projeto**, na mesma pasta que:
 4. Reinicie o servidor após criar o arquivo
 
 
+
+

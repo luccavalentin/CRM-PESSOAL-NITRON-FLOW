@@ -2,6 +2,7 @@
 
 import MainLayout from '@/components/layout/MainLayout'
 import StatCard from '@/components/ui/StatCard'
+import MonthFilter from '@/components/ui/MonthFilter'
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { useProjetosStore } from '@/stores/projetosStore'
 import { useFinancasEmpresaStore } from '@/stores/financasEmpresaStore'
@@ -22,7 +23,7 @@ import {
   DollarSign,
   LayoutDashboard,
 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -34,26 +35,31 @@ export default function DashboardPage() {
   const ideias = useIdeiasStore((state) => state.getIdeiasRecentes(5))
   const mostrarValores = usePreferencesStore((state) => state.mostrarValores)
 
+  const [mesSelecionado, setMesSelecionado] = useState<number>(() => new Date().getMonth())
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(() => new Date().getFullYear())
+
   useEffect(() => {
     calcularFluxoCaixa()
   }, [calcularFluxoCaixa])
 
-  const hoje = new Date()
-  const mesAtual = hoje.getMonth()
-  const anoAtual = hoje.getFullYear()
-  
-  const transacoesMes = transacoes.filter(t => {
-    const dataTransacao = new Date(t.data)
-    return dataTransacao.getMonth() === mesAtual && dataTransacao.getFullYear() === anoAtual
-  })
+  const transacoesMes = useMemo(() => {
+    return transacoes.filter(t => {
+      const dataTransacao = new Date(t.data)
+      return dataTransacao.getMonth() === mesSelecionado && dataTransacao.getFullYear() === anoSelecionado
+    })
+  }, [transacoes, mesSelecionado, anoSelecionado])
 
-  const entradasMes = transacoesMes
-    .filter(t => t.tipo === 'entrada')
-    .reduce((acc, t) => acc + t.valor, 0)
+  const entradasMes = useMemo(() => {
+    return transacoesMes
+      .filter(t => t.tipo === 'entrada')
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoesMes])
 
-  const saidasMes = transacoesMes
-    .filter(t => t.tipo === 'saida')
-    .reduce((acc, t) => acc + t.valor, 0)
+  const saidasMes = useMemo(() => {
+    return transacoesMes
+      .filter(t => t.tipo === 'saida')
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoesMes])
 
   const saldoLiquido = entradasMes - saidasMes
 
@@ -78,6 +84,18 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="max-w-[1400px] mx-auto space-y-8 p-6">
+        {/* Filtro de Mês */}
+        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4">
+          <MonthFilter
+            selectedMonth={mesSelecionado}
+            selectedYear={anoSelecionado}
+            onMonthChange={(month, year) => {
+              setMesSelecionado(month)
+              setAnoSelecionado(year)
+            }}
+          />
+        </div>
+
         {/* Header Section */}
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-4 mb-3">
@@ -120,7 +138,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-center">
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Entradas</h3>
-                  <p className="text-xs text-gray-500">Este Mês</p>
+                  <p className="text-xs text-gray-500">Período Selecionado</p>
                 </div>
               </div>
               <div className="text-center">
@@ -138,7 +156,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-center">
                   <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Contas a Pagar</h3>
-                  <p className="text-xs text-gray-500">Este Mês</p>
+                  <p className="text-xs text-gray-500">Período Selecionado</p>
                 </div>
               </div>
               <div className="text-center">

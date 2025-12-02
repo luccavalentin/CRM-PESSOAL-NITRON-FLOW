@@ -90,3 +90,5 @@ Todos os usuários devem ter `email_confirmed_at` e `confirmed_at` preenchidos.
 - A tabela `usuarios` é nossa tabela customizada para perfis
 - O trigger garante que ambas fiquem sincronizadas
 
+
+

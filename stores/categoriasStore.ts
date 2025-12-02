@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { saveCategoria } from '@/utils/supabaseSync'
 
 interface CategoriaFinanceira {
   id: string
@@ -40,7 +41,7 @@ export const useCategoriasStore = create<CategoriasStore>()(
         { id: 'saida-outros', nome: 'Outros', tipo: 'saida' },
       ],
       
-      addCategoria: (nome: string, tipo: 'entrada' | 'saida' | 'ambos') => {
+      addCategoria: async (nome: string, tipo: 'entrada' | 'saida' | 'ambos') => {
         const trimmed = nome.trim()
         if (!trimmed) return
 
@@ -58,6 +59,9 @@ export const useCategoriasStore = create<CategoriasStore>()(
             tipo: tipo,
             created_at: new Date().toISOString(),
           }
+          
+          // Salvar no Supabase
+          await saveCategoria(novaCategoria)
           
           set((state) => ({
             categorias: [...state.categorias, novaCategoria]
@@ -89,4 +93,6 @@ export const useCategoriasStore = create<CategoriasStore>()(
     }
   )
 )
+
+
 

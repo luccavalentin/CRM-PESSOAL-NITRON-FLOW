@@ -24,26 +24,45 @@ interface ClientesStore {
   updateCliente: (id: string, cliente: Partial<Cliente>) => void
   deleteCliente: (id: string) => void
   getClienteByLeadId: (leadId: string) => Cliente | undefined
+  loadFromSupabase: () => Promise<void>
 }
 
 export const useClientesStore = create<ClientesStore>()(
   persist(
     (set, get) => ({
       clientes: [],
-      addCliente: (cliente) =>
-        set((state) => ({ clientes: [...state.clientes, cliente] })),
-      updateCliente: (id, updates) =>
+      addCliente: async (cliente) => {
+        // Salvar no Supabase
+        await saveCliente(cliente)
+        set((state) => ({ clientes: [...state.clientes, cliente] }))
+      },
+      updateCliente: async (id, updates) => {
+        const estado = get()
+        const clienteAtualizado = estado.clientes.find(c => c.id === id)
+        if (clienteAtualizado) {
+          const cliente = { ...clienteAtualizado, ...updates }
+          // Salvar no Supabase
+          await saveCliente(cliente)
+        }
         set((state) => ({
           clientes: state.clientes.map((c) =>
             c.id === id ? { ...c, ...updates } : c
           ),
-        })),
-      deleteCliente: (id) =>
+        }))
+      },
+      deleteCliente: async (id) => {
+        // Deletar no Supabase
+        await deleteCliente(id)
         set((state) => ({
           clientes: state.clientes.filter((c) => c.id !== id),
-        })),
+        }))
+      },
       getClienteByLeadId: (leadId) =>
         get().clientes.find((c) => c.leadId === leadId),
+      loadFromSupabase: async () => {
+        const clientes = await loadClientes()
+        set({ clientes })
+      },
     }),
     {
       name: 'clientes-storage',
@@ -51,6 +70,8 @@ export const useClientesStore = create<ClientesStore>()(
     }
   )
 )
+
+
 
 
 

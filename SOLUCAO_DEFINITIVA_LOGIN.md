@@ -64,3 +64,5 @@ Se ainda tiver problemas, verifique no console do navegador (F12):
 - Veja se há erros de confirmação
 - Verifique se a função `revalidate_user_session` está sendo chamada
 
+
+

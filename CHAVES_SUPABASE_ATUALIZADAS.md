@@ -65,3 +65,5 @@ Vá em **Settings > Environment Variables** e adicione:
 - Senhas são hasheadas automaticamente pelo Supabase
 
 
+
+

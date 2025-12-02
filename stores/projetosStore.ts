@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Projeto, DocumentoEtapa } from '@/types'
 import { criarEtapasPadrao } from '@/utils/projetoEtapas'
+import { saveProjeto, deleteProjeto as deleteProjetoFromSupabase, loadProjetos } from '@/utils/supabaseSync'
 
 interface ProjetosStore {
   projetos: Projeto[]
@@ -13,6 +14,7 @@ interface ProjetosStore {
   atualizarEtapa: (projetoId: string, etapaId: string, concluida: boolean) => void
   adicionarDocumentoEtapa: (projetoId: string, etapaId: string, documento: DocumentoEtapa) => void
   adicionarTarefaEtapa: (projetoId: string, etapaId: string, tarefaId: string) => void
+  loadFromSupabase: () => Promise<void>
 }
 
 // Função para migrar projetos antigos que não têm etapas
@@ -44,7 +46,7 @@ export const useProjetosStore = create<ProjetosStore>()(
   persist(
     (set, get) => ({
       projetos: [],
-      addProjeto: (projeto) => {
+      addProjeto: async (projeto) => {
         // Se o projeto não tem etapas, cria as etapas padrão
         const etapasPadrao = projeto.etapas && projeto.etapas.length > 0 
           ? projeto.etapas 
@@ -59,9 +61,29 @@ export const useProjetosStore = create<ProjetosStore>()(
           etapasConcluidas: etapasConcluidas,
         }
         
+        // Salvar no Supabase
+        await saveProjeto(projetoComEtapas)
+        
         set((state) => ({ projetos: [...state.projetos, projetoComEtapas] }))
       },
-      updateProjeto: (id, updates) =>
+      updateProjeto: async (id, updates) => {
+        const estado = get()
+        const projetoAtualizado = estado.projetos.find(p => p.id === id)
+        if (projetoAtualizado) {
+          // Preserva etapas existentes se não foram atualizadas
+          const etapas = updates.etapas !== undefined ? updates.etapas : (projetoAtualizado.etapas || criarEtapasPadrao())
+          const etapasConcluidas = etapas.filter(e => e.concluida).length
+          const projeto = { 
+            ...projetoAtualizado, 
+            ...updates,
+            etapas: etapas,
+            etapasConcluidas,
+            totalEtapas: 7, // Sempre 7 etapas
+          }
+          // Salvar no Supabase
+          await saveProjeto(projeto)
+        }
+        
         set((state) => ({
           projetos: state.projetos.map((p) => {
             if (p.id === id) {
@@ -78,11 +100,16 @@ export const useProjetosStore = create<ProjetosStore>()(
             }
             return p
           }),
-        })),
-      deleteProjeto: (id) =>
+        }))
+      },
+      deleteProjeto: async (id) => {
+        // Deletar no Supabase
+        await deleteProjetoFromSupabase(id)
+        
         set((state) => ({
           projetos: state.projetos.filter((p) => p.id !== id),
-        })),
+        }))
+      },
       getProjetosByStatus: (status) =>
         get().projetos.filter((p) => p.status === status),
       getProjetoById: (id) => get().projetos.find((p) => p.id === id),
@@ -141,6 +168,10 @@ export const useProjetosStore = create<ProjetosStore>()(
             return p
           }),
         }))
+      },
+      loadFromSupabase: async () => {
+        const projetos = await loadProjetos()
+        set({ projetos })
       },
     }),
     {

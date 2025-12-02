@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { TransacaoFinanceira, MetaFinanceira } from '@/types'
+import { saveTransacaoEmpresa, deleteTransacaoEmpresa, loadTransacoesEmpresa } from '@/utils/supabaseSync'
 
 interface FinancasEmpresaStore {
   transacoes: TransacaoFinanceira[]
@@ -21,6 +22,7 @@ interface FinancasEmpresaStore {
   getContasPendentesMes: () => number
   marcarComoPaga: (id: string) => void
   rolarContasNaoPagas: () => void
+  loadFromSupabase: () => Promise<void>
 }
 
 export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
@@ -30,11 +32,22 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
       metas: [],
       fluxoCaixa: 0,
       saldoAcumulado: 0,
-      addTransacao: (transacao) => {
+      addTransacao: async (transacao) => {
+        // Salvar no Supabase
+        await saveTransacaoEmpresa(transacao)
+        
         set((state) => ({ transacoes: [...state.transacoes, transacao] }))
         get().calcularFluxoCaixa()
       },
-      updateTransacao: (id, updates) => {
+      updateTransacao: async (id, updates) => {
+        const estado = get()
+        const transacaoAtualizada = estado.transacoes.find(t => t.id === id)
+        if (transacaoAtualizada) {
+          const transacao = { ...transacaoAtualizada, ...updates }
+          // Salvar no Supabase
+          await saveTransacaoEmpresa(transacao)
+        }
+        
         set((state) => ({
           transacoes: state.transacoes.map((t) =>
             t.id === id ? { ...t, ...updates } : t
@@ -42,7 +55,10 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
         }))
         get().calcularFluxoCaixa()
       },
-      deleteTransacao: (id) => {
+      deleteTransacao: async (id) => {
+        // Deletar no Supabase
+        await deleteTransacaoEmpresa(id)
+        
         set((state) => ({
           transacoes: state.transacoes.filter((t) => t.id !== id),
         }))
@@ -176,7 +192,20 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
           })
           .reduce((acc, t) => acc + t.valor, 0)
       },
-      marcarComoPaga: (id) => {
+      marcarComoPaga: async (id) => {
+        const estado = get()
+        const transacao = estado.transacoes.find(t => t.id === id)
+        if (transacao) {
+          const novaPaga = !transacao.paga
+          const transacaoAtualizada = {
+            ...transacao,
+            paga: novaPaga,
+            dataPagamento: novaPaga ? new Date().toISOString().split('T')[0] : undefined,
+          }
+          // Salvar no Supabase
+          await saveTransacaoEmpresa(transacaoAtualizada)
+        }
+        
         set((state) => ({
           transacoes: state.transacoes.map((t) => {
             if (t.id === id) {
@@ -266,6 +295,11 @@ export const useFinancasEmpresaStore = create<FinancasEmpresaStore>()(
             }))
           }
         }
+      },
+      loadFromSupabase: async () => {
+        const transacoes = await loadTransacoesEmpresa()
+        set({ transacoes })
+        get().calcularFluxoCaixa()
       },
     }),
     {

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
 import CategoryInput from '@/components/ui/CategoryInput'
+import MonthFilter from '@/components/ui/MonthFilter'
 import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useCategoriasStore } from '@/stores/categoriasStore'
@@ -34,6 +35,10 @@ export default function ControleFinancasPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [periodoAnalise, setPeriodoAnalise] = useState<'mensal' | 'anual'>('mensal')
   const [categoriaModal, setCategoriaModal] = useState('')
+  const [mesSelecionado, setMesSelecionado] = useState<number>(() => new Date().getMonth())
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(() => new Date().getFullYear())
+  const [isDetalhamentoModalOpen, setIsDetalhamentoModalOpen] = useState(false)
+  const [tipoDetalhamento, setTipoDetalhamento] = useState<'entrada' | 'saida' | 'pendente' | null>(null)
 
   useEffect(() => {
     const checkbox = document.querySelector('input[name="recorrente"]') as HTMLInputElement
@@ -83,11 +88,56 @@ export default function ControleFinancasPage() {
     rolarContasNaoPagas()
   }, [transacoes, calcularSaldo, rolarContasNaoPagas])
 
-  const entradasMes = getEntradasMes()
-  const saidasMes = getSaidasMes()
-  const previsaoMes = getPrevisaoMes()
-  const contasPendentes = getContasPendentesMes()
   const mostrarValores = usePreferencesStore((state) => state.mostrarValores)
+
+  // Filtrar transações por mês selecionado
+  const transacoesFiltradasPorData = useMemo(() => {
+    return transacoes.filter(t => {
+      const dataTransacao = new Date(t.data)
+      return dataTransacao.getMonth() === mesSelecionado && 
+             dataTransacao.getFullYear() === anoSelecionado
+    })
+  }, [transacoes, mesSelecionado, anoSelecionado])
+
+  // Calcular valores com filtro de data
+  const entradasMes = useMemo(() => {
+    return transacoesFiltradasPorData
+      .filter(t => t.tipo === 'entrada')
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoesFiltradasPorData])
+
+  const saidasMes = useMemo(() => {
+    return transacoesFiltradasPorData
+      .filter(t => t.tipo === 'saida' && t.paga)
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoesFiltradasPorData])
+
+  const contasPendentes = useMemo(() => {
+    return transacoesFiltradasPorData
+      .filter(t => t.tipo === 'saida' && !t.paga)
+      .reduce((acc, t) => acc + t.valor, 0)
+  }, [transacoesFiltradasPorData])
+
+  const previsaoMes = useMemo(() => {
+    const entradas = entradasMes
+    const saidasPagas = saidasMes
+    const saidasPendentes = contasPendentes
+    return entradas - saidasPagas - saidasPendentes
+  }, [entradasMes, saidasMes, contasPendentes])
+
+  // Transações para detalhamento
+  const transacoesDetalhamento = useMemo(() => {
+    if (!tipoDetalhamento) return []
+    
+    if (tipoDetalhamento === 'entrada') {
+      return transacoesFiltradasPorData.filter(t => t.tipo === 'entrada')
+    } else if (tipoDetalhamento === 'saida') {
+      return transacoesFiltradasPorData.filter(t => t.tipo === 'saida' && t.paga)
+    } else if (tipoDetalhamento === 'pendente') {
+      return transacoesFiltradasPorData.filter(t => t.tipo === 'saida' && !t.paga)
+    }
+    return []
+  }, [transacoesFiltradasPorData, tipoDetalhamento])
 
   // Dados para gráficos
   const dadosFluxoMensal = useMemo(() => {
@@ -195,15 +245,45 @@ export default function ControleFinancasPage() {
     return todasCategorias.sort()
   }, [transacoes, categoriasSalvas])
 
-  const handleAddCategory = (newCategory: string) => {
+  // Função para calcular número da parcela
+  const calcularInfoParcela = useCallback((transacao: TransacaoFinanceira) => {
+    if (!transacao.transacaoOriginalId && !transacao.recorrente) return null
+    
+    const originalId = transacao.transacaoOriginalId || transacao.id
+    const transacoesRelacionadas = transacoes.filter(t => 
+      t.transacaoOriginalId === originalId || 
+      (t.id === originalId && t.recorrente) ||
+      (t.transacaoOriginalId && t.transacaoOriginalId === originalId)
+    )
+    
+    if (transacoesRelacionadas.length <= 1) return null
+    
+    // Ordenar por data
+    const ordenadas = [...transacoesRelacionadas].sort((a, b) => 
+      new Date(a.data).getTime() - new Date(b.data).getTime()
+    )
+    
+    const indiceParcela = ordenadas.findIndex(t => t.id === transacao.id)
+    const numeroParcela = indiceParcela + 1
+    const totalParcelas = ordenadas.length
+    
+    return { numeroParcela, totalParcelas }
+  }, [transacoes])
+
+  const handleAddCategory = useCallback((newCategory: string) => {
     // Atualizar o estado da categoria no modal
     setCategoriaModal(newCategory)
     // A categoria será salva quando a transação for salva
-  }
+  }, [])
 
-  // Transações filtradas e ordenadas
+  // Transações filtradas e ordenadas - otimizado
   const transacoesFiltradas = useMemo(() => {
-    let filtradas = [...transacoes]
+    // Primeiro filtrar por mês selecionado
+    let filtradas = transacoes.filter(t => {
+      const data = new Date(t.data)
+      return data.getMonth() === mesSelecionado && 
+             data.getFullYear() === anoSelecionado
+    })
     
     // Filtro por tipo
     if (filtroTipo !== 'todos') {
@@ -217,9 +297,10 @@ export default function ControleFinancasPage() {
     
     // Busca
     if (busca) {
+      const buscaLower = busca.toLowerCase()
       filtradas = filtradas.filter(t => 
-        t.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-        t.categoria.toLowerCase().includes(busca.toLowerCase())
+        t.descricao.toLowerCase().includes(buscaLower) ||
+        t.categoria.toLowerCase().includes(buscaLower)
       )
     }
     
@@ -241,7 +322,7 @@ export default function ControleFinancasPage() {
     })
     
     return filtradas
-  }, [transacoes, filtroTipo, filtroCategoria, busca, ordenacao, ordem])
+  }, [transacoes, mesSelecionado, anoSelecionado, filtroTipo, filtroCategoria, busca, ordenacao, ordem])
 
   const calcularProximaData = (dataInicial: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia'], multiplicador: number): Date => {
     const data = new Date(dataInicial)
@@ -307,7 +388,7 @@ export default function ControleFinancasPage() {
       dataFim: isRecorrente && dataFim ? dataFim : undefined,
       quantidadeRecorrencias: isRecorrente && quantidadeRecorrencias ? quantidadeRecorrencias : undefined,
       transacaoOriginalId: isRecorrente && !editingTransacao ? transacaoOriginalId : editingTransacao?.transacaoOriginalId,
-      paga: editingTransacao?.paga || (tipoTransacao === 'entrada' ? true : false), // Entradas são sempre "pagas", saídas começam como não pagas
+      paga: editingTransacao?.paga || (tipoTransacao === 'entrada' ? undefined : false), // Entradas não têm status de paga, apenas saídas
       dataPagamento: editingTransacao?.dataPagamento,
     }
 
@@ -356,7 +437,7 @@ export default function ControleFinancasPage() {
             dataFim: novaTransacao.dataFim,
             quantidadeRecorrencias: novaTransacao.quantidadeRecorrencias,
             transacaoOriginalId: transacaoOriginalId,
-            paga: novaTransacao.tipo === 'entrada' ? true : false,
+            paga: novaTransacao.tipo === 'entrada' ? undefined : false,
           }
           addTransacao(transacaoRecorrente)
         }
@@ -370,20 +451,20 @@ export default function ControleFinancasPage() {
     setTimeout(() => setCategoriaModal(''), 100)
   }
 
-  const handleEdit = (transacao: TransacaoFinanceira) => {
+  const handleEdit = useCallback((transacao: TransacaoFinanceira) => {
     setEditingTransacao(transacao)
     setTipoTransacao(transacao.tipo)
     setCategoriaModal(transacao.categoria)
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     if (confirm('Tem certeza que deseja excluir esta transação?')) {
       deleteTransacao(id)
     }
-  }
+  }, [deleteTransacao])
 
-  const handleToggleSelect = (id: string) => {
+  const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
@@ -393,17 +474,17 @@ export default function ControleFinancasPage() {
       }
       return newSet
     })
-  }
+  }, [])
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedIds.size === transacoesFiltradas.length) {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(transacoesFiltradas.map(t => t.id)))
     }
-  }
+  }, [selectedIds.size, transacoesFiltradas])
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return
     
     const count = selectedIds.size
@@ -411,7 +492,7 @@ export default function ControleFinancasPage() {
       selectedIds.forEach(id => deleteTransacao(id))
       setSelectedIds(new Set())
     }
-  }
+  }, [selectedIds, deleteTransacao])
 
   const handleVincularTarefa = (transacao: TransacaoFinanceira) => {
     setTransacaoParaTarefa(transacao)
@@ -479,6 +560,18 @@ export default function ControleFinancasPage() {
           </div>
         </div>
 
+        {/* Filtro de Mês */}
+        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4">
+          <MonthFilter
+            selectedMonth={mesSelecionado}
+            selectedYear={anoSelecionado}
+            onMonthChange={(month, year) => {
+              setMesSelecionado(month)
+              setAnoSelecionado(year)
+            }}
+          />
+        </div>
+
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
           <StatCard
@@ -488,30 +581,56 @@ export default function ControleFinancasPage() {
             valueColor={saldoAtual > 0 ? 'text-emerald-400' : 'text-red-400'}
             className="bg-gradient-to-br from-accent-electric/10 to-accent-cyan/5 border-accent-electric/20"
           />
+          <div
+            onClick={() => {
+              setTipoDetalhamento('entrada')
+              setIsDetalhamentoModalOpen(true)
+            }}
+            className="cursor-pointer hover:scale-105 transition-transform"
+          >
+            <StatCard
+              title="Entradas do Período"
+              value={mostrarValores ? formatCurrency(entradasMes) : '••••••'}
+              icon={TrendingUp}
+              valueColor="text-emerald-400"
+              className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
+              subtitle={`${transacoesFiltradasPorData.filter(t => t.tipo === 'entrada').length} transação(ões)`}
+            />
+          </div>
+          <div
+            onClick={() => {
+              setTipoDetalhamento('saida')
+              setIsDetalhamentoModalOpen(true)
+            }}
+            className="cursor-pointer hover:scale-105 transition-transform"
+          >
+            <StatCard
+              title="Contas a Pagar (Pagas)"
+              value={mostrarValores ? formatCurrency(saidasMes) : '••••••'}
+              icon={TrendingDown}
+              valueColor="text-red-400"
+              className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20"
+              subtitle={`${transacoesFiltradasPorData.filter(t => t.tipo === 'saida' && t.paga).length} transação(ões)`}
+            />
+          </div>
+          <div
+            onClick={() => {
+              setTipoDetalhamento('pendente')
+              setIsDetalhamentoModalOpen(true)
+            }}
+            className="cursor-pointer hover:scale-105 transition-transform"
+          >
+            <StatCard
+              title="Contas Pendentes"
+              value={mostrarValores ? formatCurrency(contasPendentes) : '••••••'}
+              icon={AlertCircle}
+              valueColor="text-orange-400"
+              className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20"
+              subtitle={`${transacoesFiltradasPorData.filter(t => t.tipo === 'saida' && !t.paga).length} conta(s)`}
+            />
+          </div>
           <StatCard
-            title="Entradas do Mês"
-            value={mostrarValores ? formatCurrency(entradasMes) : '••••••'}
-            icon={TrendingUp}
-            valueColor="text-emerald-400"
-            className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
-          />
-          <StatCard
-            title="Contas a Pagar (Pagas)"
-            value={mostrarValores ? formatCurrency(saidasMes) : '••••••'}
-            icon={TrendingDown}
-            valueColor="text-red-400"
-            className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20"
-          />
-          <StatCard
-            title="Contas Pendentes"
-            value={mostrarValores ? formatCurrency(contasPendentes) : '••••••'}
-            icon={AlertCircle}
-            valueColor="text-orange-400"
-            className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20"
-            subtitle={`${transacoes.filter(t => t.tipo === 'saida' && !t.paga && new Date(t.data).getMonth() === new Date().getMonth() && new Date(t.data).getFullYear() === new Date().getFullYear()).length} conta(s)`}
-          />
-          <StatCard
-            title="Previsão do Mês"
+            title="Previsão do Período"
             value={mostrarValores ? formatCurrency(previsaoMes) : '••••••'}
             icon={Wallet}
             valueColor={previsaoMes > 0 ? 'text-emerald-400' : 'text-red-400'}
@@ -747,28 +866,28 @@ export default function ControleFinancasPage() {
                   t.etiquetas?.some(e => e.includes(transacao.descricao.substring(0, 30)))
                 )
                 
-                const isPaga = transacao.paga === true
+                const isPaga = transacao.tipo === 'saida' && transacao.paga === true // Apenas saídas podem ser pagas
                 const isVencida = transacao.tipo === 'saida' && !isPaga && new Date(transacao.data) < new Date()
                 
                 return (
                   <div
                     key={transacao.id}
                     className={`p-6 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-lg ${
-                      isPaga
+                      transacao.tipo === 'saida' && isPaga
                         ? 'bg-gradient-to-br from-emerald-900/30 via-emerald-800/20 to-emerald-900/10 border-2 border-emerald-500/40 opacity-80 shadow-emerald-500/20'
                         : isVencida
                         ? 'bg-gradient-to-br from-red-900/30 via-red-800/20 to-red-900/10 border-2 border-red-500/60 shadow-red-500/30'
                         : transacao.tipo === 'entrada'
                         ? 'bg-gradient-to-br from-emerald-900/20 via-dark-black/60 to-dark-black/40 border-2 border-emerald-500/30 hover:border-emerald-400/50 shadow-emerald-500/10'
                         : 'bg-gradient-to-br from-red-900/20 via-dark-black/60 to-dark-black/40 border-2 border-red-500/30 hover:border-red-400/50 shadow-red-500/10'
-                    } hover:shadow-xl hover:shadow-${transacao.tipo === 'entrada' ? 'emerald' : 'red'}-500/30 hover:scale-[1.02]`}
+                    } hover:shadow-xl hover:scale-[1.02]`}
                   >
                     {/* Efeito de brilho sutil animado */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     
                     {/* Barra lateral colorida com gradiente */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      isPaga
+                      transacao.tipo === 'saida' && isPaga
                         ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
                         : isVencida
                         ? 'bg-gradient-to-b from-red-400 to-red-600 animate-pulse'
@@ -782,12 +901,13 @@ export default function ControleFinancasPage() {
                       transacao.tipo === 'entrada' ? 'bg-emerald-400' : 'bg-red-400'
                     } rounded-full blur-3xl`} />
                     
-                    {tarefasVinculadas.length > 0 && (
-                      <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg relative z-10">
-                        <div className="flex items-center gap-2 text-xs text-purple-400">
-                          <ListTodo className="w-3 h-3" />
-                          <span>{tarefasVinculadas.length} tarefa(s) vinculada(s)</span>
-                        </div>
+                    {/* Indicador de Parcela Neon */}
+                    {infoParcela && (
+                      <div className="mb-3 relative z-10">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-electric/30 via-accent-cyan/30 to-accent-electric/30 border-2 border-accent-electric/50 text-accent-electric shadow-lg shadow-accent-electric/50 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-electric animate-ping"></span>
+                          {infoParcela.numeroParcela} Parcela de {infoParcela.totalParcelas}
+                        </span>
                       </div>
                     )}
                     
@@ -812,7 +932,7 @@ export default function ControleFinancasPage() {
                             }`}
                             title={isPaga ? 'Marcar como não paga' : 'Marcar como paga'}
                           >
-                            {isPaga && <CheckCircle2 className="w-5 h-5" />}
+                            {isPaga ? <CheckCircle2 className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                           </button>
                         )}
                         
@@ -832,11 +952,11 @@ export default function ControleFinancasPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-3">
                             <p className={`font-bold text-xl leading-tight ${
-                              isPaga ? 'line-through text-gray-500' : 'text-white'
+                              transacao.tipo === 'saida' && isPaga ? 'line-through text-gray-500' : 'text-white'
                             }`}>
                               {transacao.descricao}
                             </p>
-                            {isPaga && (
+                            {transacao.tipo === 'saida' && isPaga && (
                               <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Paga
@@ -848,7 +968,13 @@ export default function ControleFinancasPage() {
                                 Vencida
                               </span>
                             )}
-                            {transacao.recorrente && (
+                            {infoParcela && (
+                              <span className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-electric/40 via-accent-cyan/40 to-accent-electric/40 border-2 border-accent-electric/60 text-accent-electric shadow-lg shadow-accent-electric/40 animate-pulse flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-accent-electric animate-ping"></span>
+                                {infoParcela.numeroParcela} Parcela de {infoParcela.totalParcelas}
+                              </span>
+                            )}
+                            {transacao.recorrente && !infoParcela && (
                               <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                 Recorrente
                               </span>
@@ -863,7 +989,7 @@ export default function ControleFinancasPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2.5 text-sm">
                             <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-black/50 border border-card-border/30 ${
-                              isPaga ? 'text-gray-500' : 'text-gray-300'
+                              transacao.tipo === 'saida' && isPaga ? 'text-gray-500' : 'text-gray-300'
                             }`}>
                               <Calendar className="w-4 h-4 flex-shrink-0" />
                               <span className="font-medium">
@@ -907,7 +1033,7 @@ export default function ControleFinancasPage() {
                             </span>
                             <span
                               className={`text-3xl font-extrabold tracking-tight ${
-                                isPaga
+                                transacao.tipo === 'saida' && isPaga
                                   ? 'text-gray-500 line-through'
                                   : transacao.tipo === 'entrada'
                                   ? 'text-emerald-400'
@@ -1221,6 +1347,128 @@ export default function ControleFinancasPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal de Detalhamento */}
+        <Modal
+          isOpen={isDetalhamentoModalOpen}
+          onClose={() => {
+            setIsDetalhamentoModalOpen(false)
+            setTipoDetalhamento(null)
+          }}
+          title={
+            tipoDetalhamento === 'entrada' 
+              ? 'Detalhamento de Entradas' 
+              : tipoDetalhamento === 'saida'
+              ? 'Detalhamento de Contas Pagas'
+              : 'Detalhamento de Contas Pendentes'
+          }
+        >
+          <div className="space-y-4">
+            <div className="bg-card-bg/50 rounded-lg p-4 border border-card-border">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Período:</span>
+                <span className="text-sm font-medium text-white">
+                  {new Date(anoSelecionado, mesSelecionado, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-400">Total:</span>
+                <span className={`text-lg font-bold ${
+                  tipoDetalhamento === 'entrada' ? 'text-emerald-400' : 'text-red-400'
+                }`}>
+                  {mostrarValores 
+                    ? formatCurrency(
+                        transacoesDetalhamento.reduce((acc, t) => acc + t.valor, 0)
+                      )
+                    : '••••••'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm text-gray-400">Quantidade:</span>
+                <span className="text-sm font-medium text-white">
+                  {transacoesDetalhamento.length} transação(ões)
+                </span>
+              </div>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto custom-scrollbar">
+              {transacoesDetalhamento.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Nenhuma transação encontrada no período selecionado</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {transacoesDetalhamento
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                    .map((transacao) => {
+                      const infoParcelaDetalhamento = calcularInfoParcela(transacao)
+                      return (
+                      <div
+                        key={transacao.id}
+                        className="bg-card-bg/50 border border-card-border rounded-lg p-4 hover:bg-card-bg transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-white">{transacao.descricao}</h4>
+                              {infoParcelaDetalhamento && (
+                                <span className="text-xs font-bold bg-gradient-to-r from-accent-electric/40 via-accent-cyan/40 to-accent-electric/40 border-2 border-accent-electric/60 text-accent-electric shadow-lg shadow-accent-electric/40 animate-pulse flex items-center gap-1.5 px-2 py-0.5 rounded">
+                                  <span className="w-1 h-1 rounded-full bg-accent-electric animate-ping"></span>
+                                  {infoParcelaDetalhamento.numeroParcela} Parcela de {infoParcelaDetalhamento.totalParcelas}
+                                </span>
+                              )}
+                              {transacao.recorrente && !infoParcelaDetalhamento && (
+                                <span className="text-xs bg-accent-electric/20 text-accent-electric px-2 py-0.5 rounded">
+                                  Recorrente
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                              <span>{new Date(transacao.data).toLocaleDateString('pt-BR')}</span>
+                              <span>{transacao.categoria}</span>
+                              {transacao.tipo === 'saida' && (
+                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                  transacao.paga 
+                                    ? 'bg-emerald-500/20 text-emerald-400' 
+                                    : 'bg-orange-500/20 text-orange-400'
+                                }`}>
+                                  {transacao.paga ? 'Paga' : 'Pendente'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-bold ${
+                              transacao.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'
+                            }`}>
+                              {mostrarValores 
+                                ? formatCurrency(transacao.valor)
+                                : '••••••'
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )})}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-card-border">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsDetalhamentoModalOpen(false)
+                  setTipoDetalhamento(null)
+                }}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
         </Modal>
       </div>
     </MainLayout>

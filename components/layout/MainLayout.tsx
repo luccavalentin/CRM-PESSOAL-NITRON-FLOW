@@ -1,10 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/authStore'
+import { useLoadDataFromSupabase } from '@/hooks/useLoadDataFromSupabase'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { 
+  loadTransacoesPessoais, 
+  loadTransacoesEmpresa, 
+  loadTarefas, 
+  loadProjetos, 
+  loadLeads, 
+  loadClientes,
+  loadItensCompra 
+} from '@/utils/supabaseSync'
+import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
+import { useFinancasEmpresaStore } from '@/stores/financasEmpresaStore'
+import { useTarefasStore } from '@/stores/tarefasStore'
+import { useProjetosStore } from '@/stores/projetosStore'
+import { useLeadsStore } from '@/stores/leadsStore'
+import { useClientesStore } from '@/stores/clientesStore'
+import { useListaComprasStore } from '@/stores/listaComprasStore'
 
 export default function MainLayout({
   children,
@@ -15,37 +32,52 @@ export default function MainLayout({
   const pathname = usePathname()
   const { checkAuth, isAuthenticated } = useAuthStore()
   const [isChecking, setIsChecking] = useState(true)
+  const [lastCheckedPath, setLastCheckedPath] = useState<string | null>(null)
+  
+  // Carregar dados do Supabase quando autenticado
+  useLoadDataFromSupabase()
+
+  // Memoizar rotas públicas
+  const publicRoutes = useMemo(() => ['/login', '/cadastro', '/verificar-conexao'], [])
+  const isPublicRoute = useMemo(() => 
+    publicRoutes.some(route => pathname.startsWith(route)), 
+    [pathname, publicRoutes]
+  )
+
+  // Verificar autenticação apenas quando necessário
+  const verifyAuth = useCallback(async () => {
+    // Evitar verificação duplicada na mesma rota
+    if (lastCheckedPath === pathname && !isChecking) {
+      return
+    }
+
+    const isAuth = await checkAuth()
+    
+    if (!isAuth || !isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    setIsChecking(false)
+    setLastCheckedPath(pathname)
+  }, [pathname, checkAuth, isAuthenticated, router, lastCheckedPath, isChecking])
 
   useEffect(() => {
-    // Rotas públicas que não precisam de autenticação
-    const publicRoutes = ['/login', '/cadastro', '/verificar-conexao']
-    const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-
     // Se for rota pública, não verificar autenticação
     if (isPublicRoute) {
       setIsChecking(false)
       return
     }
 
-    // Verificar autenticação em rotas protegidas
-    // SEGURANÇA: Verifica tanto checkAuth quanto isAuthenticated
-    const verifyAuth = async () => {
-      const isAuth = await checkAuth()
-      
-      if (!isAuth || !isAuthenticated) {
-        router.push('/login')
-        return
-      }
-
-      setIsChecking(false)
-    }
-
+    // Verificar autenticação em rotas protegidas apenas se necessário
     verifyAuth()
-  }, [pathname, checkAuth, isAuthenticated, router])
+  }, [pathname, isPublicRoute, verifyAuth])
+
+  // Carregar dados do Supabase quando autenticado
+  useLoadDataFromSupabase()
 
   // Se estiver em rota pública, não renderizar o layout
-  const publicRoutes = ['/login', '/cadastro', '/verificar-conexao']
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (isPublicRoute) {
     return <>{children}</>
   }
 

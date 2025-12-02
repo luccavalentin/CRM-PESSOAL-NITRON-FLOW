@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import MainLayout from '@/components/layout/MainLayout'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import StatCard from '@/components/ui/StatCard'
 import CategoryInput from '@/components/ui/CategoryInput'
+import MonthFilter from '@/components/ui/MonthFilter'
 import { useFinancasEmpresaStore } from '@/stores/financasEmpresaStore'
 import { useCategoriasStore } from '@/stores/categoriasStore'
 import { formatCurrency } from '@/utils/formatCurrency'
@@ -40,20 +41,19 @@ import { LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
 
-type PeriodoFiltro = 'hoje' | 'semana' | 'mes' | 'trimestre' | 'ano' | 'todos'
-
 export default function FluxoCaixaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTarefaModalOpen, setIsTarefaModalOpen] = useState(false)
   const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null)
   const [transacaoParaTarefa, setTransacaoParaTarefa] = useState<TransacaoFinanceira | null>(null)
   const [tipoTransacao, setTipoTransacao] = useState<'entrada' | 'saida'>('entrada')
-  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('mes')
   const [busca, setBusca] = useState('')
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas')
   const [saldoInicial, setSaldoInicial] = useState(0)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [categoriaModal, setCategoriaModal] = useState('')
+  const [mesSelecionado, setMesSelecionado] = useState<number>(() => new Date().getMonth())
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(() => new Date().getFullYear())
   
   const addTarefa = useTarefasStore((state) => state.addTarefa)
   const tarefas = useTarefasStore((state) => state.tarefas)
@@ -104,50 +104,21 @@ export default function FluxoCaixaPage() {
     }
   }, [isModalOpen, editingTransacao])
 
-  // Filtros e cálculos
+  // Filtros e cálculos - otimizado
   const transacoesFiltradas = useMemo(() => {
-    let filtradas = [...transacoes]
-    const hoje = new Date()
-
-    // Filtro por período
-    switch (periodoFiltro) {
-      case 'hoje':
-        filtradas = filtradas.filter(t => {
-          const data = new Date(t.data)
-          return data.toDateString() === hoje.toDateString()
-        })
-        break
-      case 'semana':
-        const inicioSemana = new Date(hoje)
-        inicioSemana.setDate(hoje.getDate() - hoje.getDay())
-        filtradas = filtradas.filter(t => new Date(t.data) >= inicioSemana)
-        break
-      case 'mes':
-        filtradas = filtradas.filter(t => {
-          const data = new Date(t.data)
-          return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear()
-        })
-        break
-      case 'trimestre':
-        const trimestreAtual = Math.floor(hoje.getMonth() / 3)
-        filtradas = filtradas.filter(t => {
-          const data = new Date(t.data)
-          return Math.floor(data.getMonth() / 3) === trimestreAtual && data.getFullYear() === hoje.getFullYear()
-        })
-        break
-      case 'ano':
-        filtradas = filtradas.filter(t => {
-          const data = new Date(t.data)
-          return data.getFullYear() === hoje.getFullYear()
-        })
-        break
-    }
+    // Primeiro filtrar por mês selecionado
+    let filtradas = transacoes.filter(t => {
+      const data = new Date(t.data)
+      return data.getMonth() === mesSelecionado && 
+             data.getFullYear() === anoSelecionado
+    })
 
     // Filtro por busca
     if (busca) {
+      const buscaLower = busca.toLowerCase()
       filtradas = filtradas.filter(t => 
-        t.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-        t.categoria.toLowerCase().includes(busca.toLowerCase())
+        t.descricao.toLowerCase().includes(buscaLower) ||
+        t.categoria.toLowerCase().includes(buscaLower)
       )
     }
 
@@ -157,12 +128,12 @@ export default function FluxoCaixaPage() {
     }
 
     return filtradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
-  }, [transacoes, periodoFiltro, busca, categoriaFiltro])
+  }, [transacoes, mesSelecionado, anoSelecionado, busca, categoriaFiltro])
 
   const entradas = transacoesFiltradas.filter(t => t.tipo === 'entrada')
   const saidas = transacoesFiltradas.filter(t => t.tipo === 'saida')
   const totalEntradas = entradas.reduce((acc, t) => acc + t.valor, 0)
-  const totalSaidas = saidas.filter(t => t.paga === true || t.tipo === 'entrada').reduce((acc, t) => acc + t.valor, 0)
+  const totalSaidas = saidas.filter(t => t.paga === true).reduce((acc, t) => acc + t.valor, 0)
   const contasPendentes = getContasPendentesMes()
   const saldoPeriodo = totalEntradas - totalSaidas
   const saldoAtual = saldoInicial + fluxoCaixa
@@ -245,7 +216,7 @@ export default function FluxoCaixaPage() {
       dataFim: isRecorrente && dataFim ? dataFim : undefined,
       quantidadeRecorrencias: isRecorrente && quantidadeRecorrencias ? quantidadeRecorrencias : undefined,
       transacaoOriginalId: isRecorrente && !editingTransacao ? transacaoOriginalId : editingTransacao?.transacaoOriginalId,
-      paga: editingTransacao?.paga || (tipoTransacao === 'entrada' ? true : false), // Entradas são sempre "pagas", saídas começam como não pagas
+      paga: editingTransacao?.paga || (tipoTransacao === 'entrada' ? undefined : false), // Entradas não têm status de paga, apenas saídas
       dataPagamento: editingTransacao?.dataPagamento,
     }
 
@@ -295,7 +266,7 @@ export default function FluxoCaixaPage() {
             dataFim: novaTransacao.dataFim,
             quantidadeRecorrencias: novaTransacao.quantidadeRecorrencias,
             transacaoOriginalId: transacaoOriginalId,
-            paga: novaTransacao.tipo === 'entrada' ? true : false,
+            paga: novaTransacao.tipo === 'entrada' ? undefined : false,
           }
           addTransacao(transacaoRecorrente)
         }
@@ -336,9 +307,9 @@ export default function FluxoCaixaPage() {
         break
     }
     return data
-  }
+  }, [])
 
-  const calcularQuantidadeRecorrencias = (dataInicial: Date, dataFim: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia']): number => {
+  const calcularQuantidadeRecorrencias = useCallback((dataInicial: Date, dataFim: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia']): number => {
     let count = 0
     let data = new Date(dataInicial)
     while (data <= dataFim) {
@@ -346,16 +317,16 @@ export default function FluxoCaixaPage() {
       data = calcularProximaData(dataInicial, tipoRecorrencia, count)
     }
     return count
-  }
+  }, [calcularProximaData])
 
-  const handleEdit = (transacao: TransacaoFinanceira) => {
+  const handleEdit = useCallback((transacao: TransacaoFinanceira) => {
     setEditingTransacao(transacao)
     setTipoTransacao(transacao.tipo)
     setCategoriaModal(transacao.categoria)
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const handleAddCategory = (newCategory: string) => {
+  const handleAddCategory = useCallback((newCategory: string) => {
     const trimmed = newCategory.trim()
     if (trimmed) {
       // Salva a nova categoria no store
@@ -363,15 +334,15 @@ export default function FluxoCaixaPage() {
       // Atualiza o estado local
       setCategoriaModal(trimmed)
     }
-  }
+  }, [addCategoria])
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     if (confirm('Tem certeza que deseja excluir esta transação?')) {
       deleteTransacao(id)
     }
-  }
+  }, [deleteTransacao])
 
-  const handleToggleSelect = (id: string) => {
+  const handleToggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
       const newSet = new Set(prev)
       if (newSet.has(id)) {
@@ -381,7 +352,7 @@ export default function FluxoCaixaPage() {
       }
       return newSet
     })
-  }
+  }, [])
 
   const handleSelectAll = () => {
     if (selectedIds.size === transacoesFiltradas.length) {
@@ -470,27 +441,21 @@ export default function FluxoCaixaPage() {
           </div>
         </div>
 
+        {/* Filtro de Mês */}
+        <div className="bg-card-bg/80 backdrop-blur-sm border border-card-border/50 rounded-xl p-4">
+          <MonthFilter
+            selectedMonth={mesSelecionado}
+            selectedYear={anoSelecionado}
+            onMonthChange={(month, year) => {
+              setMesSelecionado(month)
+              setAnoSelecionado(year)
+            }}
+          />
+        </div>
+
         {/* Filtros */}
         <div className="bg-card-bg border border-card-border rounded-xl p-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                <Filter className="w-4 h-4 inline mr-1" />
-                Período
-              </label>
-              <select
-                value={periodoFiltro}
-                onChange={(e) => setPeriodoFiltro(e.target.value as PeriodoFiltro)}
-                className="w-full px-4 py-2 bg-dark-black border border-card-border rounded-lg text-white focus:outline-none focus:border-accent-electric"
-              >
-                <option value="hoje">Hoje</option>
-                <option value="semana">Esta Semana</option>
-                <option value="mes">Este Mês</option>
-                <option value="trimestre">Este Trimestre</option>
-                <option value="ano">Este Ano</option>
-                <option value="todos">Todos</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <Search className="w-4 h-4 inline mr-1" />
@@ -804,17 +769,15 @@ export default function FluxoCaixaPage() {
           {transacoesFiltradas.length > 0 ? (
             <div className="space-y-2">
               {transacoesFiltradas.map((transacao) => {
-                const isPaga = transacao.paga === true
+                const isPaga = transacao.tipo === 'saida' && transacao.paga === true // Apenas saídas podem ser pagas
                 const isVencida = transacao.tipo === 'saida' && !isPaga && new Date(transacao.data) < new Date()
-                const tarefasVinculadas = tarefas.filter(t => 
-                  t.etiquetas?.some(e => e.includes(transacao.descricao.substring(0, 30)))
-                )
+                const infoParcela = calcularInfoParcela(transacao)
                 
                 return (
                   <div
                     key={transacao.id}
                     className={`p-6 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-lg ${
-                      isPaga
+                      transacao.tipo === 'saida' && isPaga
                         ? 'bg-gradient-to-br from-emerald-900/30 via-emerald-800/20 to-emerald-900/10 border-2 border-emerald-500/40 opacity-80 shadow-emerald-500/20'
                         : isVencida
                         ? 'bg-gradient-to-br from-red-900/30 via-red-800/20 to-red-900/10 border-2 border-red-500/60 shadow-red-500/30'
@@ -828,7 +791,7 @@ export default function FluxoCaixaPage() {
                     
                     {/* Barra lateral colorida com gradiente */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      isPaga
+                      transacao.tipo === 'saida' && isPaga
                         ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
                         : isVencida
                         ? 'bg-gradient-to-b from-red-400 to-red-600 animate-pulse'
@@ -842,12 +805,13 @@ export default function FluxoCaixaPage() {
                       transacao.tipo === 'entrada' ? 'bg-emerald-400' : 'bg-red-400'
                     } rounded-full blur-3xl`} />
                     
-                    {tarefasVinculadas.length > 0 && (
-                      <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg relative z-10">
-                        <div className="flex items-center gap-2 text-xs text-purple-400">
-                          <ListTodo className="w-3 h-3" />
-                          <span>{tarefasVinculadas.length} tarefa(s) vinculada(s)</span>
-                        </div>
+                    {/* Indicador de Parcela Neon */}
+                    {infoParcela && (
+                      <div className="mb-3 relative z-10">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-electric/30 via-accent-cyan/30 to-accent-electric/30 border-2 border-accent-electric/50 text-accent-electric shadow-lg shadow-accent-electric/50 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-electric animate-ping"></span>
+                          {infoParcela.numeroParcela} Parcela de {infoParcela.totalParcelas}
+                        </span>
                       </div>
                     )}
                     
@@ -891,7 +855,7 @@ export default function FluxoCaixaPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <p className={`font-semibold text-lg truncate ${
-                              isPaga ? 'line-through text-gray-500' : 'text-white'
+                              transacao.tipo === 'saida' && isPaga ? 'line-through text-gray-500' : 'text-white'
                             }`}>
                               {transacao.descricao}
                             </p>
@@ -907,7 +871,13 @@ export default function FluxoCaixaPage() {
                                 Vencida
                               </span>
                             )}
-                            {transacao.recorrente && (
+                            {infoParcela && (
+                              <span className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-electric/40 via-accent-cyan/40 to-accent-electric/40 border-2 border-accent-electric/60 text-accent-electric shadow-lg shadow-accent-electric/40 animate-pulse flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-accent-electric animate-ping"></span>
+                                {infoParcela.numeroParcela} Parcela de {infoParcela.totalParcelas}
+                              </span>
+                            )}
+                            {transacao.recorrente && !infoParcela && (
                               <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                 Recorrente
                               </span>
@@ -922,7 +892,7 @@ export default function FluxoCaixaPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2.5 text-sm">
                             <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-black/50 border border-card-border/30 ${
-                              isPaga ? 'text-gray-500' : 'text-gray-300'
+                              transacao.tipo === 'saida' && isPaga ? 'text-gray-500' : 'text-gray-300'
                             }`}>
                               <Calendar className="w-4 h-4 flex-shrink-0" />
                               <span className="font-medium">
@@ -967,7 +937,7 @@ export default function FluxoCaixaPage() {
                             </span>
                             <span
                               className={`text-3xl font-extrabold tracking-tight ${
-                                isPaga
+                                transacao.tipo === 'saida' && isPaga
                                   ? 'text-gray-500 line-through'
                                   : transacao.tipo === 'entrada'
                                   ? 'text-emerald-400'

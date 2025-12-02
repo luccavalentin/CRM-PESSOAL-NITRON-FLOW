@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { TransacaoFinanceira, MetaFinanceira, GastoRecorrente } from '@/types'
+import { saveTransacaoPessoal, deleteTransacaoPessoal, loadTransacoesPessoais } from '@/utils/supabaseSync'
 
 interface FinancasPessoaisStore {
   transacoes: TransacaoFinanceira[]
@@ -24,6 +25,7 @@ interface FinancasPessoaisStore {
   getContasPendentesMes: () => number
   marcarComoPaga: (id: string) => void
   rolarContasNaoPagas: () => void
+  loadFromSupabase: () => Promise<void>
 }
 
 export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
@@ -34,11 +36,22 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
       gastosRecorrentes: [],
       saldoAtual: 0,
       saldoAcumulado: 0,
-      addTransacao: (transacao) => {
+      addTransacao: async (transacao) => {
+        // Salvar no Supabase
+        await saveTransacaoPessoal(transacao)
+        
         set((state) => ({ transacoes: [...state.transacoes, transacao] }))
         get().calcularSaldo()
       },
-      updateTransacao: (id, updates) => {
+      updateTransacao: async (id, updates) => {
+        const estado = get()
+        const transacaoAtualizada = estado.transacoes.find(t => t.id === id)
+        if (transacaoAtualizada) {
+          const transacao = { ...transacaoAtualizada, ...updates }
+          // Salvar no Supabase
+          await saveTransacaoPessoal(transacao)
+        }
+        
         set((state) => ({
           transacoes: state.transacoes.map((t) =>
             t.id === id ? { ...t, ...updates } : t
@@ -46,7 +59,10 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
         }))
         get().calcularSaldo()
       },
-      deleteTransacao: (id) => {
+      deleteTransacao: async (id) => {
+        // Deletar no Supabase
+        await deleteTransacaoPessoal(id)
+        
         set((state) => ({
           transacoes: state.transacoes.filter((t) => t.id !== id),
         }))
@@ -123,7 +139,20 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
           })
           .reduce((acc, t) => acc + t.valor, 0)
       },
-      marcarComoPaga: (id) => {
+      marcarComoPaga: async (id) => {
+        const estado = get()
+        const transacao = estado.transacoes.find(t => t.id === id)
+        if (transacao) {
+          const novaPaga = !transacao.paga
+          const transacaoAtualizada = {
+            ...transacao,
+            paga: novaPaga,
+            dataPagamento: novaPaga ? new Date().toISOString().split('T')[0] : undefined,
+          }
+          // Salvar no Supabase
+          await saveTransacaoPessoal(transacaoAtualizada)
+        }
+        
         set((state) => ({
           transacoes: state.transacoes.map((t) => {
             if (t.id === id) {

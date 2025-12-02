@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Ideia } from '@/types'
+import { saveIdeia, deleteIdeia as deleteIdeiaFromSupabase, loadIdeias } from '@/utils/supabaseSync'
 
 interface IdeiasStore {
   ideias: Ideia[]
@@ -10,24 +11,43 @@ interface IdeiasStore {
   getIdeiasByStatus: (status: Ideia['status']) => Ideia[]
   getIdeiasByCategoria: (categoria: Ideia['categoria']) => Ideia[]
   getIdeiasRecentes: (limit?: number) => Ideia[]
+  loadFromSupabase: () => Promise<void>
 }
 
 export const useIdeiasStore = create<IdeiasStore>()(
   persist(
     (set, get) => ({
       ideias: [],
-      addIdeia: (ideia) =>
-        set((state) => ({ ideias: [...state.ideias, ideia] })),
-      updateIdeia: (id, updates) =>
+      addIdeia: async (ideia) => {
+        // Salvar no Supabase
+        await saveIdeia(ideia)
+        set((state) => ({ ideias: [...state.ideias, ideia] }))
+      },
+      updateIdeia: async (id, updates) => {
+        const estado = get()
+        const ideiaAtualizada = estado.ideias.find(i => i.id === id)
+        if (ideiaAtualizada) {
+          const ideia = { ...ideiaAtualizada, ...updates }
+          // Salvar no Supabase
+          await saveIdeia(ideia)
+        }
         set((state) => ({
           ideias: state.ideias.map((i) =>
             i.id === id ? { ...i, ...updates } : i
           ),
-        })),
-      deleteIdeia: (id) =>
+        }))
+      },
+      deleteIdeia: async (id) => {
+        // Deletar no Supabase
+        await deleteIdeiaFromSupabase(id)
         set((state) => ({
           ideias: state.ideias.filter((i) => i.id !== id),
-        })),
+        }))
+      },
+      loadFromSupabase: async () => {
+        const ideias = await loadIdeias()
+        set({ ideias })
+      },
       getIdeiasByStatus: (status) =>
         get().ideias.filter((i) => i.status === status),
       getIdeiasByCategoria: (categoria) =>
@@ -46,6 +66,8 @@ export const useIdeiasStore = create<IdeiasStore>()(
     }
   )
 )
+
+
 
 
 

@@ -67,3 +67,5 @@ CREATE TRIGGER trigger_update_categorias_updated_at
 -- usando apenas o localStorage.
 -- ============================================
 
+
+

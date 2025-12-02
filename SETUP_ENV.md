@@ -28,3 +28,5 @@ Se não houver erros relacionados ao Supabase, está configurado corretamente!
 
 
 
+
+
