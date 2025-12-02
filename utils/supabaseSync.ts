@@ -740,15 +740,30 @@ export const saveIdeia = async (ideia: any) => {
     const userId = await getCurrentUserId()
     if (!userId) return
 
+    // Mapear da interface Ideia para o banco de dados
+    // texto -> titulo (primeira linha) e descricao (resto)
+    // potencialFinanceiro -> prioridade (1-3 = Baixa, 4-7 = Média, 8-10 = Alta)
+    const texto = ideia.texto || ''
+    const linhas = texto.split('\n')
+    const titulo = linhas[0] || ''
+    const descricao = linhas.slice(1).join('\n') || texto
+    
+    let prioridade = 'Média'
+    if (ideia.potencialFinanceiro !== undefined) {
+      if (ideia.potencialFinanceiro >= 8) prioridade = 'Alta'
+      else if (ideia.potencialFinanceiro >= 4) prioridade = 'Média'
+      else prioridade = 'Baixa'
+    }
+
     const { error } = await supabase
       .from('ideias')
       .upsert({
         id: ideia.id,
         usuario_id: userId,
-        titulo: ideia.titulo,
-        descricao: ideia.descricao,
+        titulo: titulo,
+        descricao: descricao,
         categoria: ideia.categoria,
-        prioridade: ideia.prioridade,
+        prioridade: prioridade,
         status: ideia.status,
         data_criacao: ideia.dataCriacao,
         tarefa_id: ideia.tarefaId,
@@ -859,17 +874,28 @@ export const loadIdeias = async () => {
       return []
     }
 
-    return (data || []).map(i => ({
-      id: i.id,
-      titulo: i.titulo,
-      descricao: i.descricao,
-      categoria: i.categoria,
-      prioridade: i.prioridade,
-      status: i.status,
-      dataCriacao: i.data_criacao || i.created_at,
-      tarefaId: i.tarefa_id,
-      projetoId: i.projeto_id,
-    }))
+    return (data || []).map(i => {
+      // Mapear do banco de dados para a interface Ideia
+      // titulo + descricao -> texto
+      // prioridade -> potencialFinanceiro (Alta=10, Média=5, Baixa=1)
+      const texto = [i.titulo, i.descricao].filter(Boolean).join('\n') || ''
+      
+      let potencialFinanceiro = 5 // padrão Média
+      if (i.prioridade === 'Alta') potencialFinanceiro = 10
+      else if (i.prioridade === 'Média') potencialFinanceiro = 5
+      else if (i.prioridade === 'Baixa') potencialFinanceiro = 1
+
+      return {
+        id: i.id,
+        texto: texto,
+        categoria: i.categoria,
+        status: i.status,
+        potencialFinanceiro: potencialFinanceiro,
+        dataCriacao: i.data_criacao || i.created_at,
+        tarefaId: i.tarefa_id,
+        projetoId: i.projeto_id,
+      }
+    })
   } catch (error) {
     console.error('Erro ao carregar ideias do Supabase:', error)
     return []
