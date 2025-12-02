@@ -868,6 +868,7 @@ export default function ControleFinancasPage() {
                 
                 const isPaga = transacao.tipo === 'saida' && transacao.paga === true // Apenas saídas podem ser pagas
                 const isVencida = transacao.tipo === 'saida' && !isPaga && new Date(transacao.data) < new Date()
+                const infoParcela = calcularInfoParcela(transacao)
                 
                 return (
                   <div
