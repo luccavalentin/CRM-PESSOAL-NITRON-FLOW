@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { saveLead, deleteLead as deleteLeadFromSupabase, loadLeads } from '@/utils/supabaseSync'
 
 export interface Lead {
   id: string
@@ -56,7 +57,7 @@ export const useLeadsStore = create<LeadsStore>()(
       },
       deleteLead: async (id) => {
         // Deletar no Supabase
-        await deleteLead(id)
+        await deleteLeadFromSupabase(id)
         set((state) => ({
           leads: state.leads.filter((l) => l.id !== id),
         }))
