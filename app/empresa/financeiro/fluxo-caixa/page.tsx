@@ -278,7 +278,7 @@ export default function FluxoCaixaPage() {
     setCategoriaModal('')
   }
 
-  const calcularProximaData = (dataInicial: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia'], multiplicador: number): Date => {
+  const calcularProximaData = useCallback((dataInicial: Date, tipoRecorrencia: TransacaoFinanceira['tipoRecorrencia'], multiplicador: number): Date => {
     const data = new Date(dataInicial)
     switch (tipoRecorrencia) {
       case 'diaria':
