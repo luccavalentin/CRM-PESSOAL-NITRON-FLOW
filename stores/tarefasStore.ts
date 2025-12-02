@@ -41,7 +41,7 @@ export const useTarefasStore = create<TarefasStore>()(
       },
       deleteTarefa: async (id) => {
         // Deletar no Supabase
-        await deleteTarefa(id)
+        await deleteTarefaFromSupabase(id)
         set((state) => ({
           tarefas: state.tarefas.filter((t) => t.id !== id),
         }))
@@ -75,6 +75,10 @@ export const useTarefasStore = create<TarefasStore>()(
       getTarefasDoDia: () => {
         const hoje = new Date().toISOString().split('T')[0]
         return get().tarefas.filter((t) => t.data === hoje)
+      },
+      loadFromSupabase: async () => {
+        const tarefas = await loadTarefas()
+        set({ tarefas })
       },
     }),
     {
