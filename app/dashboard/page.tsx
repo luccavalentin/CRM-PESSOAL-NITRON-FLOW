@@ -130,14 +130,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Saídas */}
+            {/* Contas a Pagar */}
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-3">
                 <div className="p-3 bg-red-500/20 rounded-xl">
                   <TrendingDown className="w-6 h-6 text-red-400" />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Saídas</h3>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Contas a Pagar</h3>
                   <p className="text-xs text-gray-500">Este Mês</p>
                 </div>
               </div>

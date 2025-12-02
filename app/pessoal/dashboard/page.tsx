@@ -114,7 +114,7 @@ export default function DashboardPessoalPage() {
       ultimos6Meses.push({
         mes: `${mes}/${ano}`,
         Entradas: entradas,
-        Saídas: saidas,
+        'Contas a Pagar': saidas,
         Saldo: entradas - saidas,
       })
     }
@@ -241,7 +241,7 @@ export default function DashboardPessoalPage() {
               className="bg-dark-black/50 border-accent-electric/20"
             />
             <StatCard
-              title="Saídas do Mês"
+              title="Contas a Pagar do Mês"
               value={mostrarValores ? formatCurrency(saidasMes) : '••••••'}
               icon={TrendingDown}
               valueColor="text-red-400"
@@ -298,7 +298,7 @@ export default function DashboardPessoalPage() {
                 />
                 <Legend />
                 <Area type="monotone" dataKey="Entradas" stroke="#10B981" fillOpacity={1} fill="url(#colorEntradas)" />
-                <Area type="monotone" dataKey="Saídas" stroke="#EF4444" fillOpacity={1} fill="url(#colorSaidas)" />
+                <Area type="monotone" dataKey="Contas a Pagar" stroke="#EF4444" fillOpacity={1} fill="url(#colorSaidas)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

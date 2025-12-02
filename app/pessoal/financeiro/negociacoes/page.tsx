@@ -738,7 +738,7 @@ export default function NegociacoesPage() {
             </div>
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
               <p className="text-xs text-emerald-400">
-                As parcelas serão automaticamente adicionadas como saídas no controle financeiro pessoal.
+                As parcelas serão automaticamente adicionadas como contas a pagar no controle financeiro pessoal.
               </p>
             </div>
             <div className="flex gap-3 pt-4">

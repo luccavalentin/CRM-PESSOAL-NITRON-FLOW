@@ -21,6 +21,9 @@ interface FinancasPessoaisStore {
   getSaidasMes: () => number
   getPrevisaoMes: () => number
   calcularSaldo: () => void
+  getContasPendentesMes: () => number
+  marcarComoPaga: (id: string) => void
+  rolarContasNaoPagas: () => void
 }
 
 export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
@@ -98,10 +101,118 @@ export const useFinancasPessoaisStore = create<FinancasPessoaisStore>()(
             return (
               data.getMonth() === mesAtual &&
               data.getFullYear() === anoAtual &&
-              t.tipo === 'saida'
+              t.tipo === 'saida' &&
+              (t.paga === true || t.tipo === 'entrada') // Contas pagas ou entradas
             )
           })
           .reduce((acc, t) => acc + t.valor, 0)
+      },
+      getContasPendentesMes: () => {
+        const hoje = new Date()
+        const mesAtual = hoje.getMonth()
+        const anoAtual = hoje.getFullYear()
+        return get()
+          .transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              data.getMonth() === mesAtual &&
+              data.getFullYear() === anoAtual &&
+              t.tipo === 'saida' &&
+              !t.paga
+            )
+          })
+          .reduce((acc, t) => acc + t.valor, 0)
+      },
+      marcarComoPaga: (id) => {
+        set((state) => ({
+          transacoes: state.transacoes.map((t) => {
+            if (t.id === id) {
+              const novaPaga = !t.paga
+              return {
+                ...t,
+                paga: novaPaga,
+                dataPagamento: novaPaga ? new Date().toISOString().split('T')[0] : undefined,
+              }
+            }
+            return t
+          }),
+        }))
+        get().calcularSaldo()
+      },
+      rolarContasNaoPagas: () => {
+        const hoje = new Date()
+        const mesAtual = hoje.getMonth()
+        const anoAtual = hoje.getFullYear()
+        
+        // Se for o primeiro dia do mês, rolar contas não pagas do mês anterior
+        if (hoje.getDate() === 1) {
+          const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1
+          const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual
+          
+          const contasNaoPagas = get().transacoes.filter((t) => {
+            const data = new Date(t.data)
+            return (
+              data.getMonth() === mesAnterior &&
+              data.getFullYear() === anoAnterior &&
+              t.tipo === 'saida' &&
+              !t.paga
+            )
+          })
+          
+          if (contasNaoPagas.length > 0) {
+            set((state) => ({
+              transacoes: state.transacoes.map((t) => {
+                if (contasNaoPagas.some(c => c.id === t.id)) {
+                  const dataOriginal = new Date(t.data)
+                  const novaData = new Date(anoAtual, mesAtual, dataOriginal.getDate())
+                  return {
+                    ...t,
+                    data: novaData.toISOString().split('T')[0],
+                    rolouMes: true,
+                  }
+                }
+                return t
+              }),
+            }))
+          }
+        } else {
+          // Verificar contas não pagas do mês atual que já venceram e rolar para o próximo mês
+          const contasVencidas = get().transacoes.filter((t) => {
+            const dataVencimento = new Date(t.data)
+            const hojeSemHora = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())
+            const vencimentoSemHora = new Date(dataVencimento.getFullYear(), dataVencimento.getMonth(), dataVencimento.getDate())
+            
+            return (
+              t.tipo === 'saida' &&
+              !t.paga &&
+              vencimentoSemHora < hojeSemHora &&
+              dataVencimento.getMonth() === mesAtual &&
+              dataVencimento.getFullYear() === anoAtual &&
+              !t.rolouMes
+            )
+          })
+          
+          // Se houver contas vencidas, rolar para o próximo mês
+          if (contasVencidas.length > 0) {
+            const proximoMes = mesAtual === 11 ? 0 : mesAtual + 1
+            const proximoAno = mesAtual === 11 ? anoAtual + 1 : anoAtual
+            
+            set((state) => ({
+              transacoes: state.transacoes.map((t) => {
+                if (contasVencidas.some(c => c.id === t.id)) {
+                  const dataOriginal = new Date(t.data)
+                  const novaData = new Date(proximoAno, proximoMes, dataOriginal.getDate())
+                  return {
+                    ...t,
+                    data: novaData.toISOString().split('T')[0],
+                    rolouMes: true,
+                  }
+                }
+                return t
+              }),
+            }))
+          }
+        }
       },
       getPrevisaoMes: () => {
         const entradas = get().getEntradasMes()

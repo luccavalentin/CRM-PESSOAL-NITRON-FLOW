@@ -10,7 +10,7 @@ import { useFinancasPessoaisStore } from '@/stores/financasPessoaisStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { formatCurrency } from '@/utils/formatCurrency'
 import { TransacaoFinanceira } from '@/types'
-import { Plus, TrendingUp, TrendingDown, Wallet, Link2, ListTodo, Edit2, Trash2, Filter, Search, Calendar, BarChart3, PieChart as PieChartIcon, ArrowUpDown, CheckSquare, Square, Trash } from 'lucide-react'
+import { Plus, TrendingUp, TrendingDown, Wallet, Link2, ListTodo, Edit2, Trash2, Filter, Search, Calendar, BarChart3, PieChart as PieChartIcon, ArrowUpDown, CheckSquare, Square, Trash, CheckCircle2, AlertCircle } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { useTarefasStore } from '@/stores/tarefasStore'
 import { Tarefa, Prioridade, CategoriaTarefa, StatusTarefa } from '@/types'
@@ -69,17 +69,22 @@ export default function ControleFinancasPage() {
   const getEntradasMes = useFinancasPessoaisStore((state) => state.getEntradasMes)
   const getSaidasMes = useFinancasPessoaisStore((state) => state.getSaidasMes)
   const getPrevisaoMes = useFinancasPessoaisStore((state) => state.getPrevisaoMes)
+  const getContasPendentesMes = useFinancasPessoaisStore((state) => state.getContasPendentesMes)
+  const marcarComoPaga = useFinancasPessoaisStore((state) => state.marcarComoPaga)
+  const rolarContasNaoPagas = useFinancasPessoaisStore((state) => state.rolarContasNaoPagas)
   
   const addTarefa = useTarefasStore((state) => state.addTarefa)
   const tarefas = useTarefasStore((state) => state.tarefas)
 
   useEffect(() => {
     calcularSaldo()
-  }, [transacoes, calcularSaldo])
+    rolarContasNaoPagas()
+  }, [transacoes, calcularSaldo, rolarContasNaoPagas])
 
   const entradasMes = getEntradasMes()
   const saidasMes = getSaidasMes()
   const previsaoMes = getPrevisaoMes()
+  const contasPendentes = getContasPendentesMes()
   const mostrarValores = usePreferencesStore((state) => state.mostrarValores)
 
   // Dados para gráficos
@@ -112,7 +117,7 @@ export default function ControleFinancasPage() {
       ultimos6Meses.push({
         mes,
         Entradas: entradas,
-        Saídas: saidas,
+        'Contas a Pagar': saidas,
         Saldo: entradas - saidas,
       })
     }
@@ -177,12 +182,14 @@ export default function ControleFinancasPage() {
   }, [transacoes])
 
   const categoriasUnicas = useMemo(() => {
-    return Array.from(new Set(transacoes.map(t => t.categoria))).sort()
+    const categorias = Array.from(new Set(transacoes.map(t => t.categoria).filter(c => c && c.trim() !== '')))
+    return categorias.sort()
   }, [transacoes])
 
   const handleAddCategory = (newCategory: string) => {
-    // Categoria será adicionada automaticamente quando a transação for salva
+    // Atualizar o estado da categoria no modal
     setCategoriaModal(newCategory)
+    // A categoria será salva quando a transação for salva
   }
 
   // Transações filtradas e ordenadas
@@ -283,7 +290,7 @@ export default function ControleFinancasPage() {
       id: editingTransacao?.id || uuidv4(),
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
-      categoria: categoriaModal || (formData.get('categoria') as string) || 'Outros',
+      categoria: (categoriaModal && categoriaModal.trim()) || (formData.get('categoria') as string)?.trim() || 'Outros',
       data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
       tipo: tipoTransacao,
       recorrente: isRecorrente,
@@ -291,6 +298,8 @@ export default function ControleFinancasPage() {
       dataFim: isRecorrente && dataFim ? dataFim : undefined,
       quantidadeRecorrencias: isRecorrente && quantidadeRecorrencias ? quantidadeRecorrencias : undefined,
       transacaoOriginalId: isRecorrente && !editingTransacao ? transacaoOriginalId : editingTransacao?.transacaoOriginalId,
+      paga: editingTransacao?.paga || (tipoTransacao === 'entrada' ? true : false), // Entradas são sempre "pagas", saídas começam como não pagas
+      dataPagamento: editingTransacao?.dataPagamento,
     }
 
     if (editingTransacao) {
@@ -338,6 +347,7 @@ export default function ControleFinancasPage() {
             dataFim: novaTransacao.dataFim,
             quantidadeRecorrencias: novaTransacao.quantidadeRecorrencias,
             transacaoOriginalId: transacaoOriginalId,
+            paga: novaTransacao.tipo === 'entrada' ? true : false,
           }
           addTransacao(transacaoRecorrente)
         }
@@ -347,6 +357,8 @@ export default function ControleFinancasPage() {
     setIsModalOpen(false)
     setEditingTransacao(null)
     setCategoriaModal('')
+    // Limpar categoria ao fechar
+    setTimeout(() => setCategoriaModal(''), 100)
   }
 
   const handleEdit = (transacao: TransacaoFinanceira) => {
@@ -428,7 +440,7 @@ export default function ControleFinancasPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Controle Financeiro</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Minhas Finanças</h1>
             <p className="text-gray-400">Gerencie suas finanças pessoais com controle total</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -459,7 +471,7 @@ export default function ControleFinancasPage() {
         </div>
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
           <StatCard
             title="Saldo Atual"
             value={mostrarValores ? formatCurrency(saldoAtual) : '••••••'}
@@ -475,11 +487,19 @@ export default function ControleFinancasPage() {
             className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20"
           />
           <StatCard
-            title="Saídas do Mês"
+            title="Contas a Pagar (Pagas)"
             value={mostrarValores ? formatCurrency(saidasMes) : '••••••'}
             icon={TrendingDown}
             valueColor="text-red-400"
             className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20"
+          />
+          <StatCard
+            title="Contas Pendentes"
+            value={mostrarValores ? formatCurrency(contasPendentes) : '••••••'}
+            icon={AlertCircle}
+            valueColor="text-orange-400"
+            className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20"
+            subtitle={`${transacoes.filter(t => t.tipo === 'saida' && !t.paga && new Date(t.data).getMonth() === new Date().getMonth() && new Date(t.data).getFullYear() === new Date().getFullYear()).length} conta(s)`}
           />
           <StatCard
             title="Previsão do Mês"
@@ -523,7 +543,7 @@ export default function ControleFinancasPage() {
                 />
                 <Legend />
                 <Area type="monotone" dataKey="Entradas" stroke="#10B981" fillOpacity={1} fill="url(#colorEntradas)" />
-                <Area type="monotone" dataKey="Saídas" stroke="#EF4444" fillOpacity={1} fill="url(#colorSaidas)" />
+                <Area type="monotone" dataKey="Contas a Pagar" stroke="#EF4444" fillOpacity={1} fill="url(#colorSaidas)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -615,7 +635,7 @@ export default function ControleFinancasPage() {
                 />
                 <Legend />
                 <Bar dataKey="entradas" fill="#10B981" name="Entradas" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="saidas" fill="#EF4444" name="Saídas" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="saidas" fill="#EF4444" name="Contas a Pagar" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -641,7 +661,7 @@ export default function ControleFinancasPage() {
             >
               <option value="todos">Todos os Tipos</option>
               <option value="entrada">Entradas</option>
-              <option value="saida">Saídas</option>
+              <option value="saida">Contas a Pagar</option>
             </select>
             <select
               value={filtroCategoria}
@@ -718,13 +738,43 @@ export default function ControleFinancasPage() {
                   t.etiquetas?.some(e => e.includes(transacao.descricao.substring(0, 30)))
                 )
                 
+                const isPaga = transacao.paga === true
+                const isVencida = transacao.tipo === 'saida' && !isPaga && new Date(transacao.data) < new Date()
+                
                 return (
                   <div
                     key={transacao.id}
-                    className="p-5 bg-dark-black/50 border border-card-border/50 rounded-xl hover:border-accent-electric/30 transition-all group"
+                    className={`p-6 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-lg ${
+                      isPaga
+                        ? 'bg-gradient-to-br from-emerald-900/30 via-emerald-800/20 to-emerald-900/10 border-2 border-emerald-500/40 opacity-80 shadow-emerald-500/20'
+                        : isVencida
+                        ? 'bg-gradient-to-br from-red-900/30 via-red-800/20 to-red-900/10 border-2 border-red-500/60 shadow-red-500/30'
+                        : transacao.tipo === 'entrada'
+                        ? 'bg-gradient-to-br from-emerald-900/20 via-dark-black/60 to-dark-black/40 border-2 border-emerald-500/30 hover:border-emerald-400/50 shadow-emerald-500/10'
+                        : 'bg-gradient-to-br from-red-900/20 via-dark-black/60 to-dark-black/40 border-2 border-red-500/30 hover:border-red-400/50 shadow-red-500/10'
+                    } hover:shadow-xl hover:shadow-${transacao.tipo === 'entrada' ? 'emerald' : 'red'}-500/30 hover:scale-[1.02]`}
                   >
+                    {/* Efeito de brilho sutil animado */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    {/* Barra lateral colorida com gradiente */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                      isPaga
+                        ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
+                        : isVencida
+                        ? 'bg-gradient-to-b from-red-400 to-red-600 animate-pulse'
+                        : transacao.tipo === 'entrada'
+                        ? 'bg-gradient-to-b from-emerald-400 to-emerald-600'
+                        : 'bg-gradient-to-b from-red-400 to-red-600'
+                    }`} />
+                    
+                    {/* Canto superior direito decorativo */}
+                    <div className={`absolute top-0 right-0 w-32 h-32 opacity-5 ${
+                      transacao.tipo === 'entrada' ? 'bg-emerald-400' : 'bg-red-400'
+                    } rounded-full blur-3xl`} />
+                    
                     {tarefasVinculadas.length > 0 && (
-                      <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                      <div className="mb-3 p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg relative z-10">
                         <div className="flex items-center gap-2 text-xs text-purple-400">
                           <ListTodo className="w-3 h-3" />
                           <span>{tarefasVinculadas.length} tarefa(s) vinculada(s)</span>
@@ -732,75 +782,164 @@ export default function ControleFinancasPage() {
                       </div>
                     )}
                     
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
                       <div className="flex items-center gap-3 flex-1">
+                        {/* Checkbox de seleção */}
                         <input
                           type="checkbox"
                           checked={selectedIds.has(transacao.id)}
                           onChange={() => handleToggleSelect(transacao.id)}
                           className="w-5 h-5 rounded border-card-border bg-dark-black/50 text-accent-electric focus:ring-accent-electric cursor-pointer"
                         />
-                        <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <p className="text-white font-semibold text-lg">{transacao.descricao}</p>
-                          {transacao.recorrente && (
-                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                              Recorrente
-                            </span>
-                          )}
-                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                            transacao.tipo === 'entrada'
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                              : 'bg-red-500/20 text-red-400 border-red-500/30'
-                          }`}>
-                            {transacao.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(transacao.data).toLocaleDateString('pt-BR')}
-                          </span>
-                          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent-electric/15 text-accent-electric border border-accent-electric/20">
-                            {transacao.categoria}
-                          </span>
-                          {transacao.tipoRecorrencia && (
-                            <span className="text-purple-400">
-                              • {transacao.tipoRecorrencia.charAt(0).toUpperCase() + transacao.tipoRecorrencia.slice(1)}
-                            </span>
+                        
+                        {/* Checkbox de paga (apenas para contas a pagar) */}
+                        {transacao.tipo === 'saida' && (
+                          <button
+                            onClick={() => marcarComoPaga(transacao.id)}
+                            className={`flex-shrink-0 w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all shadow-lg ${
+                              isPaga
+                                ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-emerald-500/50'
+                                : 'bg-dark-black/70 border-card-border hover:border-emerald-500/50 text-transparent hover:text-emerald-400 hover:bg-emerald-500/10'
+                            }`}
+                            title={isPaga ? 'Marcar como não paga' : 'Marcar como paga'}
+                          >
+                            {isPaga && <CheckCircle2 className="w-5 h-5" />}
+                          </button>
+                        )}
+                        
+                        {/* Ícone de tipo com efeito */}
+                        <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
+                          transacao.tipo === 'entrada'
+                            ? 'bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-gradient-to-br from-red-500/30 to-red-600/20 text-red-400 border border-red-500/30'
+                        }`}>
+                          {transacao.tipo === 'entrada' ? (
+                            <TrendingUp className="w-7 h-7" />
+                          ) : (
+                            <TrendingDown className="w-7 h-7" />
                           )}
                         </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <p className={`font-bold text-xl leading-tight ${
+                              isPaga ? 'line-through text-gray-500' : 'text-white'
+                            }`}>
+                              {transacao.descricao}
+                            </p>
+                            {isPaga && (
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Paga
+                              </span>
+                            )}
+                            {isVencida && !isPaga && (
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1 animate-pulse">
+                                <AlertCircle className="w-3 h-3" />
+                                Vencida
+                              </span>
+                            )}
+                            {transacao.recorrente && (
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                Recorrente
+                              </span>
+                            )}
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
+                              transacao.tipo === 'entrada'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : 'bg-red-500/20 text-red-400 border-red-500/30'
+                            }`}>
+                              {transacao.tipo === 'entrada' ? 'Entrada' : 'Conta a Pagar'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2.5 text-sm">
+                            <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-black/50 border border-card-border/30 ${
+                              isPaga ? 'text-gray-500' : 'text-gray-300'
+                            }`}>
+                              <Calendar className="w-4 h-4 flex-shrink-0" />
+                              <span className="font-medium">
+                                {new Date(transacao.data).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                              {transacao.dataPagamento && (
+                                <span className="text-emerald-400 ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span className="text-xs font-semibold">Paga em {new Date(transacao.dataPagamento).toLocaleDateString('pt-BR')}</span>
+                                </span>
+                              )}
+                            </span>
+                            <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-electric/25 to-accent-cyan/25 text-accent-electric border border-accent-electric/40 shadow-sm">
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-accent-electric"></span>
+                                {transacao.categoria}
+                              </span>
+                            </span>
+                            {transacao.tipoRecorrencia && (
+                              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/25 text-purple-300 border border-purple-500/40 shadow-sm">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                                  {transacao.tipoRecorrencia.charAt(0).toUpperCase() + transacao.tipoRecorrencia.slice(1)}
+                                </span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span
-                          className={`text-2xl font-bold ${
-                            transacao.tipo === 'entrada'
-                              ? 'text-emerald-400'
-                              : 'text-red-400'
-                          }`}
-                        >
-                          {transacao.tipo === 'entrada' ? '+' : '-'}
-                          {mostrarValores ? formatCurrency(transacao.valor) : '••••'}
-                        </span>
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="text-right">
+                          <div className="flex items-baseline gap-2">
+                            <span className={`text-2xl font-bold ${
+                              transacao.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'
+                            }`}>
+                              {transacao.tipo === 'entrada' ? '+' : '-'}
+                            </span>
+                            <span
+                              className={`text-3xl font-extrabold tracking-tight ${
+                                isPaga
+                                  ? 'text-gray-500 line-through'
+                                  : transacao.tipo === 'entrada'
+                                  ? 'text-emerald-400'
+                                  : isVencida
+                                  ? 'text-red-400'
+                                  : 'text-red-400'
+                              }`}
+                            >
+                              {mostrarValores ? formatCurrency(transacao.valor) : '••••'}
+                            </span>
+                          </div>
+                          {isVencida && !isPaga && (
+                            <div className="mt-2 px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-500/30">
+                              <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
+                                <AlertCircle className="w-3 h-3" />
+                                Vencida há {Math.floor((new Date().getTime() - new Date(transacao.data).getTime()) / (1000 * 60 * 60 * 24))} dia(s)
+                              </p>
+                            </div>
+                          )}
+                          {!isVencida && !isPaga && transacao.tipo === 'saida' && (
+                            <p className="text-xs text-gray-500 mt-1.5">Pendente</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                           <button
                             onClick={() => handleVincularTarefa(transacao)}
-                            className="p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+                            className="p-2.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl transition-all border border-transparent hover:border-purple-500/30 shadow-sm hover:shadow-purple-500/20"
                             title="Vincular Tarefa"
                           >
                             <Link2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(transacao)}
-                            className="p-2 text-accent-electric hover:bg-accent-electric/10 rounded-lg transition-colors"
+                            className="p-2.5 text-accent-electric hover:text-accent-cyan hover:bg-accent-electric/20 rounded-xl transition-all border border-transparent hover:border-accent-electric/30 shadow-sm hover:shadow-accent-electric/20"
                             title="Editar"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(transacao.id)}
-                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="p-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all border border-transparent hover:border-red-500/30 shadow-sm hover:shadow-red-500/20"
                             title="Excluir"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -830,7 +969,7 @@ export default function ControleFinancasPage() {
             setCategoriaModal('')
           }}
           title={editingTransacao ? 'Editar Transação' : tipoTransacao === 'entrada' ? 'Nova Entrada' : 'Conta a Pagar'}
-          description={editingTransacao ? 'Atualize os dados da transação' : tipoTransacao === 'entrada' ? 'Registre uma nova entrada financeira' : 'Registre uma nova saída financeira'}
+          description={editingTransacao ? 'Atualize os dados da transação' : tipoTransacao === 'entrada' ? 'Registre uma nova entrada financeira' : 'Registre uma nova conta a pagar'}
           size="lg"
           variant={tipoTransacao === 'entrada' ? 'success' : 'error'}
           icon={tipoTransacao === 'entrada' ? TrendingUp : TrendingDown}
@@ -865,18 +1004,21 @@ export default function ControleFinancasPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Categoria
                 </label>
-                <CategoryInput
-                  value={categoriaModal || editingTransacao?.categoria || ''}
-                  onChange={(value) => setCategoriaModal(value)}
-                  categories={categoriasUnicas}
-                  onAddCategory={handleAddCategory}
-                  placeholder="Buscar ou criar categoria..."
-                />
-                <input
-                  type="hidden"
-                  name="categoria"
-                  value={categoriaModal || editingTransacao?.categoria || ''}
-                />
+                <div>
+                  <CategoryInput
+                    value={categoriaModal || editingTransacao?.categoria || ''}
+                    onChange={(value) => {
+                      setCategoriaModal(value.trim())
+                    }}
+                    categories={categoriasUnicas}
+                    onAddCategory={(newCat) => {
+                      const trimmed = newCat.trim()
+                      setCategoriaModal(trimmed)
+                    }}
+                    placeholder="Buscar ou criar categoria..."
+                    name="categoria"
+                  />
+                </div>
               </div>
             </div>
             <div>

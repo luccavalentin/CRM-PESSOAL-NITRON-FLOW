@@ -128,7 +128,7 @@ export default function DesempenhoPage() {
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Saídas do Mês</span>
+                  <span className="text-gray-400">Contas a Pagar do Mês</span>
                   <span className="text-red-400 font-semibold">
                     {formatCurrency(saidasMes)}
                   </span>

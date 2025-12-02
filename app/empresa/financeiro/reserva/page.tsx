@@ -323,7 +323,7 @@ export default function ReservaEmergenciaPage() {
                 {formatCurrency(gastoMedioMensal)}
               </p>
               <p className="text-xs text-gray-400">
-                Baseado nas saídas do mês
+                Baseado nas contas a pagar do mês
               </p>
             </div>
 

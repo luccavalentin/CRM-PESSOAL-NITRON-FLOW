@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Search, Plus, X } from 'lucide-react'
 
 interface CategoryInputProps {
@@ -14,21 +14,28 @@ interface CategoryInputProps {
 
 export default function CategoryInput({
   value,
+  defaultValue,
   onChange,
   categories,
   onAddCategory,
   placeholder = 'Buscar ou criar categoria...',
   className = '',
+  name,
 }: CategoryInputProps) {
-  const [searchTerm, setSearchTerm] = useState(value)
+  const initialValue = value || defaultValue || ''
+  const [searchTerm, setSearchTerm] = useState(initialValue)
   const [isOpen, setIsOpen] = useState(false)
   const [showNewCategory, setShowNewCategory] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setSearchTerm(value)
-  }, [value])
+    if (value !== undefined) {
+      setSearchTerm(value)
+    } else if (defaultValue !== undefined) {
+      setSearchTerm(defaultValue)
+    }
+  }, [value, defaultValue])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,19 +54,27 @@ export default function CategoryInput({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredCategories = useMemo(() => {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return categories.slice(0, 10) // Mostrar primeiras 10 quando não há busca
+    }
+    return categories.filter((cat) =>
+      cat && cat.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [categories, searchTerm])
 
-  const exactMatch = categories.find(
-    (cat) => cat.toLowerCase() === searchTerm.toLowerCase()
-  )
+  const exactMatch = useMemo(() => {
+    if (!searchTerm) return null
+    return categories.find(
+      (cat) => cat && cat.toLowerCase() === searchTerm.trim().toLowerCase()
+    )
+  }, [categories, searchTerm])
 
-  const showCreateOption =
-    searchTerm &&
-    !exactMatch &&
-    searchTerm.trim().length > 0 &&
-    filteredCategories.length === 0
+  const showCreateOption = useMemo(() => {
+    if (!searchTerm || searchTerm.trim().length === 0) return false
+    const trimmed = searchTerm.trim()
+    return !exactMatch && trimmed.length > 0
+  }, [searchTerm, exactMatch])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
@@ -67,15 +82,8 @@ export default function CategoryInput({
     setIsOpen(true)
     setShowNewCategory(false)
     
-    // Se encontrar match exato, atualizar valor
-    const match = categories.find(
-      (cat) => cat.toLowerCase() === newValue.toLowerCase()
-    )
-    if (match) {
-      onChange(match)
-    } else {
-      onChange(newValue)
-    }
+    // Sempre atualizar o valor para permitir digitação livre
+    onChange(newValue)
   }
 
   const handleSelectCategory = (category: string) => {
@@ -86,12 +94,20 @@ export default function CategoryInput({
   }
 
   const handleCreateCategory = () => {
-    if (searchTerm.trim() && onAddCategory) {
-      onAddCategory(searchTerm.trim())
-      onChange(searchTerm.trim())
-      setSearchTerm(searchTerm.trim())
+    const categoriaTrimmed = searchTerm.trim()
+    if (categoriaTrimmed && onAddCategory) {
+      // Criar a categoria
+      onAddCategory(categoriaTrimmed)
+      // Atualizar o valor
+      onChange(categoriaTrimmed)
+      setSearchTerm(categoriaTrimmed)
       setIsOpen(false)
       setShowNewCategory(false)
+    } else if (categoriaTrimmed) {
+      // Se não tiver callback, apenas atualizar o valor
+      onChange(categoriaTrimmed)
+      setSearchTerm(categoriaTrimmed)
+      setIsOpen(false)
     }
   }
 
@@ -111,6 +127,13 @@ export default function CategoryInput({
 
   return (
     <div className={`relative ${className}`}>
+      {name && (
+        <input
+          type="hidden"
+          name={name}
+          value={searchTerm}
+        />
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
@@ -169,13 +192,19 @@ export default function CategoryInput({
               <button
                 type="button"
                 onClick={handleCreateCategory}
-                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 rounded-lg transition-colors text-emerald-400 flex items-center gap-2 group"
+                className="w-full text-left px-4 py-2.5 hover:bg-emerald-500/10 rounded-lg transition-colors text-emerald-400 flex items-center gap-2 group font-semibold"
               >
                 <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="font-medium">
-                  Criar categoria: &quot;{searchTerm}&quot;
+                <span>
+                  Criar categoria: &quot;{searchTerm.trim()}&quot;
                 </span>
               </button>
+            </div>
+          )}
+          
+          {!searchTerm && filteredCategories.length === 0 && (
+            <div className="p-4 text-center text-gray-400 text-sm">
+              Digite para buscar ou criar uma categoria
             </div>
           )}
         </div>

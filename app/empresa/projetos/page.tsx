@@ -50,6 +50,8 @@ export default function ProjetosPage() {
       status: (formData.get('status') as StatusProjeto) || 'Pendente',
       cliente: formData.get('cliente') as string || undefined,
       valor: formData.get('valor') ? parseFloat(formData.get('valor') as string) : undefined,
+      precoVenda: formData.get('precoVenda') ? parseFloat(formData.get('precoVenda') as string) : undefined,
+      quantidadeClientes: formData.get('quantidadeClientes') ? parseInt(formData.get('quantidadeClientes') as string) : undefined,
       etapasConcluidas: editingProjeto?.etapasConcluidas || 0,
       totalEtapas: 7, // Sempre 7 etapas padrão
       etapas: editingProjeto?.etapas || [], // Será preenchido automaticamente pelo store
@@ -321,6 +323,22 @@ export default function ProjetosPage() {
                         </span>
                       </div>
                     )}
+                    {projeto.precoVenda && (
+                      <div className="text-sm">
+                        <span className="text-gray-400">Preço de Venda: </span>
+                        <span className="text-emerald-400 font-semibold">
+                          {formatCurrency(projeto.precoVenda)}
+                        </span>
+                      </div>
+                    )}
+                    {projeto.quantidadeClientes !== undefined && (
+                      <div className="text-sm">
+                        <span className="text-gray-400">Quantidade de Clientes: </span>
+                        <span className="text-blue-400 font-semibold">
+                          {projeto.quantidadeClientes}
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between pt-3 border-t border-dark-lighter">
                       <span
@@ -444,6 +462,36 @@ export default function ProjetosPage() {
                 name="valor"
                 step="0.01"
                 defaultValue={editingProjeto?.valor}
+                className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Preço de Venda (R$)
+              </label>
+              <input
+                type="number"
+                name="precoVenda"
+                step="0.01"
+                min="0"
+                defaultValue={editingProjeto?.precoVenda}
+                placeholder="0.00"
+                className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Quantidade de Clientes
+              </label>
+              <input
+                type="number"
+                name="quantidadeClientes"
+                min="0"
+                step="1"
+                defaultValue={editingProjeto?.quantidadeClientes}
+                placeholder="0"
                 className="w-full px-5 py-3 bg-card-bg border border-card-border rounded-xl text-white focus:outline-none focus:border-accent-electric focus:ring-2 focus:ring-accent-electric/20 transition-all"
               />
             </div>

@@ -64,6 +64,8 @@ export interface Projeto {
   status: StatusProjeto
   cliente?: string
   valor?: number
+  precoVenda?: number
+  quantidadeClientes?: number
   etapasConcluidas: number
   totalEtapas: number
   etapas: EtapaProjeto[]
@@ -107,6 +109,10 @@ export interface TransacaoFinanceira {
   dataFim?: string // Data final da recorrência (opcional)
   transacaoOriginalId?: string // ID da transação original que gerou as recorrentes
   quantidadeRecorrencias?: number // Quantidade de vezes que deve se repetir
+  paga?: boolean // Se a transação foi paga
+  dataPagamento?: string // Data em que foi paga
+  dataVencimento?: string // Data de vencimento (para contas a pagar)
+  rolouMes?: boolean // Se a conta rolou para o próximo mês
 }
 
 export interface MetaFinanceira {

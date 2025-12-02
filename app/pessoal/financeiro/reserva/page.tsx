@@ -251,7 +251,7 @@ export default function ReservaEmergenciaPessoalPage() {
               <p className="text-sm text-gray-400">
                 {mesesCobertos > 0 
                   ? `Sua reserva cobre ${mesesCobertos} ${mesesCobertos === 1 ? 'mês' : 'meses'} de gastos`
-                  : 'Calcule com base nas saídas mensais'
+                  : 'Calcule com base nas contas a pagar mensais'
                 }
               </p>
             </div>
@@ -265,7 +265,7 @@ export default function ReservaEmergenciaPessoalPage() {
               </p>
               {saidasMes > 0 && (
                 <p className="text-xs text-gray-400">
-                  Com base nas suas saídas mensais, você precisaria de {recomendacaoMeses} meses para atingir a meta.
+                  Com base nas suas contas a pagar mensais, você precisaria de {recomendacaoMeses} meses para atingir a meta.
                 </p>
               )}
             </div>
@@ -284,7 +284,7 @@ export default function ReservaEmergenciaPessoalPage() {
                   </p>
                   {saidasMes > 0 && (
                     <p className="text-xs text-gray-400">
-                      Economizando {formatCurrency(saidasMes * 0.1)} por mês (10% das saídas), você atingirá a meta em {Math.ceil(faltante / (saidasMes * 0.1))} meses.
+                      Economizando {formatCurrency(saidasMes * 0.1)} por mês (10% das contas a pagar), você atingirá a meta em {Math.ceil(faltante / (saidasMes * 0.1))} meses.
                     </p>
                   )}
                 </div>
