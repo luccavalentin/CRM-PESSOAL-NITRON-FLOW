@@ -221,11 +221,22 @@ export default function FluxoCaixaPage() {
     
     const transacaoOriginalId = editingTransacao?.transacaoOriginalId || (editingTransacao?.id || uuidv4())
     
+    // Determinar categoria
+    let categoriaFinal = 'Outros'
+    if (categoriaModal && categoriaModal.trim()) {
+      categoriaFinal = categoriaModal.trim()
+    } else {
+      const catForm = formData.get('categoria') as string
+      if (catForm && catForm.trim()) {
+        categoriaFinal = catForm.trim()
+      }
+    }
+    
     const novaTransacao: TransacaoFinanceira = {
       id: editingTransacao?.id || uuidv4(),
       descricao: (formData.get('descricao') as string) || 'Sem descrição',
       valor: parseFloat(formData.get('valor') as string) || 0,
-      categoria: (categoriaModal && categoriaModal.trim()) || ((formData.get('categoria') as string) || '').trim() || 'Outros',
+      categoria: categoriaFinal,
       data: (formData.get('data') as string) || new Date().toISOString().split('T')[0],
       tipo: tipoTransacao,
       recorrente: isRecorrente,
